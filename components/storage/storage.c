@@ -271,189 +271,173 @@ uint8_t get_max_temp_m4() {
 
 void set_queimador_mode(bool new_value) {
     if (get_queimador_mode() != new_value) {
-        set_queimador_mode(new_value);
+        set_bool(PL_KEY, new_value);
         queimadorMode = new_value;
     }
 }
 
 void set_queimador_state(bool new_value) {
     if (get_queimador_state() != new_value) {
-        set_queimador_state(new_value);
         isQueimadorOn = new_value;
     }
 }
 
 void set_alarme_state(bool new_value) {
     if (get_alarme_state() != new_value) {
-        set_alarme_state(new_value);
         isAlarmeOn = new_value;
     }
 }
 
 void set_m1_connected(bool new_value) {
     if (get_m1_connected() != new_value) {
-        set_m1_connected(new_value);
         isM1Connected = new_value;
     }
 }
 
 void set_m2_connected(bool new_value) {
     if (get_m2_connected() != new_value) {
-        set_m2_connected(new_value);
         isM2Connected = new_value;
     }
 }
 
 void set_m3_connected(bool new_value) {
     if (get_m3_connected() != new_value) {
-        set_m3_connected(new_value);
         isM3Connected = new_value;
     }
 }
 
 void set_m4_connected(bool new_value) {
     if (get_m4_connected() != new_value) {
-        set_m4_connected(new_value);
         isM4Connected = new_value;
     }
 }
 
 void set_entr_aware(bool new_value) {
     if (get_entr_aware() != new_value) {
-        set_entr_aware(new_value);
         isAwareEntr = new_value;
     }
 }
 
 void set_m1_aware(bool new_value) {
     if (get_m1_aware() != new_value) {
-        set_m1_aware(new_value);
         isAwareM1 = new_value;
     }
 }
 
 void set_m2_aware(bool new_value) {
     if (get_m2_aware() != new_value) {
-        set_m2_aware(new_value);
         isAwareM2 = new_value;
     }
 }
 
 void set_m3_aware(bool new_value) {
     if (get_m3_aware() != new_value) {
-        set_m3_aware(new_value);
         isAwareM3 = new_value;
     }
 }
 
 void set_m4_aware(bool new_value) {
     if (get_m4_aware() != new_value) {
-        set_m4_aware(new_value);
         isAwareM4 = new_value;
     }
 }
 
 void set_temp_entr(uint8_t new_value) {
     if(get_temp_entr() != new_value) {
-        set_temp_entr(new_value);
         tempEntr = new_value;
     }
 }
 
 void set_temp_m1(uint8_t new_value) {
     if(get_temp_m1() != new_value) {
-        set_temp_m1(new_value);
         tempM1 = new_value;
     }
 }
 
 void set_temp_m2(uint8_t new_value) {
     if(get_temp_m2() != new_value) {
-        set_temp_m2(new_value);
         tempM2 = new_value;
     }
 }
 
 void set_temp_m3(uint8_t new_value) {
     if(get_temp_m3() != new_value) {
-        set_temp_m3(new_value);
         tempM3 = new_value;
     }
 }
 
 void set_temp_m4(uint8_t new_value) {
     if(get_temp_m4() != new_value) {
-        set_temp_m4(new_value);
         tempM4 = new_value;
     }
 }
 
 void set_min_temp_entr(uint8_t new_value) {
     if(get_min_temp_entr() != new_value) {
-        set_min_temp_entr(new_value);
+        set_u8(ENTR_MIN_KEY, new_value);
         minTempEntr = new_value;
     }
 }
 
 void set_max_temp_entr(uint8_t new_value) {
     if(get_max_temp_entr() != new_value) {
-        set_max_temp_entr(new_value);
+        set_u8(ENTR_MAX_KEY, new_value);
         maxTempEntr = new_value;
     }
 }
 
 void set_min_temp_m1(uint8_t new_value) {
     if(get_min_temp_m1() != new_value) {
-        set_min_temp_m1(new_value);
+        set_u8(M1_MIN_KEY, new_value);
         minTempM1 = new_value;
     }
 }
 
 void set_max_temp_m1(uint8_t new_value) {
     if(get_max_temp_m1() != new_value) {
-        set_max_temp_m1(new_value);
+        set_u8(M1_MAX_KEY, new_value);
         maxTempM1 = new_value;
     }
 }
 
 void set_min_temp_m2(uint8_t new_value) {
     if(get_min_temp_m2() != new_value) {
-        set_min_temp_m2(new_value);
+        set_u8(M2_MIN_KEY, new_value);
         minTempM2 = new_value;
     }
 }
 
 void set_max_temp_m2(uint8_t new_value) {
     if(get_max_temp_m2() != new_value) {
-        set_max_temp_m2(new_value);
+        set_u8(M2_MAX_KEY, new_value);
         maxTempM2 = new_value;
     }
 }
 
 void set_min_temp_m3(uint8_t new_value) {
     if(get_min_temp_m3() != new_value) {
-        set_min_temp_m3(new_value);
+        set_u8(M3_MIN_KEY, new_value);
         minTempM3 = new_value;
     }
 }
 
 void set_max_temp_m3(uint8_t new_value) {
     if(get_max_temp_m3() != new_value) {
-        set_max_temp_m3(new_value);
+        set_u8(M3_MAX_KEY, new_value);
         maxTempM3 = new_value;
     }
 }
 
 void set_min_temp_m4(uint8_t new_value) {
     if(get_min_temp_m4() != new_value) {
-        set_min_temp_m4(new_value);
+        set_u8(M4_MIN_KEY, new_value);
         minTempM4 = new_value;
     }
 }
 
 void set_max_temp_m4(uint8_t new_value) {
     if(get_max_temp_m4() != new_value) {
-        set_max_temp_m4(new_value);
+        set_u8(M4_MAX_KEY, new_value);
         maxTempM4 = new_value;
     }
 }
