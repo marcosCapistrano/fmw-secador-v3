@@ -2,6 +2,7 @@
 #include "freertos/queue.h"
 
 #include "ihm_manager.h"
+#include "controller.h"
 
 // #define PRODUCTION
 
@@ -11,5 +12,5 @@ QueueHandle_t controller_update_q;
 void app_main(void)
 {
     ihm_manager_init();
-
+    controller_init();
 }
