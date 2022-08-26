@@ -68,7 +68,7 @@ typedef enum {
 
 typedef struct {
     StorageEventType_t type;
-    void *value;
+    int value;
 } StorageEvent_t;
 
 static bool query_cb(fdb_tsl_t tsl, void *arg);
@@ -360,11 +360,11 @@ void storage_init(void) {
     /* append new log to TSDB */
     storage_set_lote_number(storage_get_lote_number() + 1);
     event.type = EVENT_LOTE_NUM_CHANGED;
-    event.value = &lote_number;
+    event.value = lote_number;
     fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
 
     storage_set_lote_number(storage_get_lote_number() + 1);
-    event.value = &lote_number;
+    event.value = lote_number;
     fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
 
     fdb_tsl_iter(&tsdb, query_cb, &tsdb);
@@ -387,7 +387,7 @@ static bool query_cb(fdb_tsl_t tsl, void *arg) {
     fdb_tsdb_t db = arg;
 
     fdb_blob_read((fdb_db_t)db, fdb_tsl_to_blob(tsl, fdb_blob_make(&blob, &event, sizeof(event))));
-    ESP_LOGI(TAG, "[query_cb] queried a TSL: time: %d, type: %d, value: %d\n", tsl->time, event.type, (int)event.value);
+    ESP_LOGI(TAG, "[query_cb] queried a TSL: time: %d, type: %d, value: %d\n", tsl->time, event.type, event.value);
     return false;
 }
 
