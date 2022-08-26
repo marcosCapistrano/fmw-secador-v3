@@ -4,6 +4,8 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
+void storage_init();
+
 bool get_queimador_mode();
 
 bool get_queimador_state();

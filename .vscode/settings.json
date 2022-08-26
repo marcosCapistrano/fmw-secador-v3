@@ -22,6 +22,8 @@
         "ratio": "cpp",
         "tuple": "cpp",
         "type_traits": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "perif_controller.h": "c",
+        "freertos.h": "c"
     }
 }

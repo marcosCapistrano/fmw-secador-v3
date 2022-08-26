@@ -1,4 +1,4 @@
-#include "ihm_manager.h"
+#include "ihm_controller.h"
 
 #include "common.h"
 #include "driver/uart.h"
@@ -13,10 +13,6 @@
 
 #define BUF_SIZE (1024)
 #define RD_BUF_SIZE (BUF_SIZE)
-
-#define IHM_INPUT_QUEUE_LEN 5
-#define IHM_UPDATE_QUEUE_LEN 5
-#define QUEUE_SET_LEN (IHM_INPUT_QUEUE_LEN + IHM_UPDATE_QUEUE_LEN)
 
 static QueueSetHandle_t ihm_qs;
 static QueueHandle_t ihm_input_q;
@@ -42,12 +38,16 @@ typedef struct {
 
 typedef struct {
     enum IHMPage_t curr_page;
-    IHMInitConditions_t init_conditions;
+    // IHMInitConditions_t init_conditions;
 } IHMState_t;
 
 static IHMState_t ihm_state;
 
-void ihm_manager_init(void) {
+void ihm_controller_start_task() {
+    xTaskCreate(ihm_task, "IHM_INPUT_TASK", 6000, NULL, 3, NULL);
+}
+
+void ihm_controller_init(void) {
     uart_config_t uart_config = {
         .baud_rate = 9600,
         .data_bits = UART_DATA_8_BITS,
@@ -60,9 +60,7 @@ void ihm_manager_init(void) {
     ESP_ERROR_CHECK(uart_param_config(UART_NUM, &uart_config));
     ESP_ERROR_CHECK(uart_set_pin(UART_NUM, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
-    ihm_update_q = xQueueCreate(IHM_UPDATE_QUEUE_LEN, sizeof(IHMUpdate_t));
-
-    ihm_qs = xQueueCreateSet(QUEUE_SET_LEN);
+    ihm_qs = xQueueCreateSet(IHM_QUEUE_SET_LEN);
     xQueueAddToSet(ihm_input_q, ihm_qs);
     xQueueAddToSet(ihm_update_q, ihm_qs);
 
@@ -73,8 +71,6 @@ void ihm_manager_init(void) {
     /*
         Wait for confirmation from other components, change to sensors screen, and then start the task.
     */
-
-    xTaskCreate(ihm_task, "IHM_INPUT_TASK", 6000, NULL, 3, NULL);
 }
 
 static void process_input(uart_event_t *input_event) {
@@ -103,7 +99,7 @@ static void process_update(IHMUpdate_t update_event) {
     ESP_LOGI(TAG, "Received Init condition: %d", (IHMUpdateTypeInit_t)update_event.payload);
     switch (ihm_state.curr_page) {
         case INIT: {
-            if (update_event.type == IHM_UPDATE_TYPE_INIT) {
+            if (update_event.type == IHM_UPDATE_CHANGE_PAGE) {
                 ESP_LOGI(TAG, "Received Init condition: %d", (IHMUpdateTypeInit_t)update_event.payload);
                 process_init_conditions((IHMUpdateTypeInit_t)update_event.payload);
                 break;

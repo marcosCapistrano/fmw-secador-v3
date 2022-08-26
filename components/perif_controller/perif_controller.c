@@ -1,4 +1,4 @@
-#include "controller.h"
+#include "perif_controller.h"
 
 #include <stdbool.h>
 #include "driver/gpio.h"
@@ -20,7 +20,7 @@
 #define GPIO_OUTPUT_SEL ((1ULL << PIN_QUEIMADOR) | (1ULL << PIN_ALARME) | (1ULL << PIN_MASSA_QUENTE) | (1ULL << PIN_MASSA_FRIO) | (1ULL << PIN_ENTRADA_QUENTE) | (1ULL << PIN_ENTRADA_FRIO) | (1ULL << PIN_CONEXAO))
 #define GPIO_INPUT_SEL (1ULL << PIN_SENSOR)
 
-extern QueueHandle_t ihm_update_q;
+extern QueueHandle_t state_manager_q;
 
 static void set_queimador(bool on);
 static void set_alarme(bool on);
@@ -30,7 +30,19 @@ static void set_led_mass_quente(bool on);
 static void set_led_mass_frio(bool on);
 static void set_led_conexao(bool on);
 
-void controller_init(void) {
+static void perif_controller_task(void *pvParameters) {
+    /*
+        This task will receive events from:
+        - IHM input - for page/state update
+        - Server - for state update
+    */
+}
+
+void perif_controller_start_task() {
+    xTaskCreate(perif_controller_task, "PERIF_CONTROLLER_TASK", 2400, NULL, 5, NULL);
+}
+
+void perif_controller_init(void) {
     gpio_config_t gpio_conf = {};
     gpio_conf.intr_type = GPIO_INTR_DISABLE;
     gpio_conf.mode = GPIO_MODE_OUTPUT;
@@ -49,21 +61,13 @@ void controller_init(void) {
     set_led_conexao(false);
 
     // Inicializar leitor sensor físico
-    
 
     // Notificar LCD
-    IHMUpdate_t ihm_update = {.type = IHM_UPDATE_TYPE_INIT, .payload = (void *)IHM_UPDATE_INIT_SENSOR_ENTR};
-    xQueueSend(ihm_update_q, &ihm_update, portMAX_DELAY);
+    StateMessage_t state_msg = INIT_PERIF;
+    xQueueSend(state_manager_q, &state_msg, portMAX_DELAY);
     // Salvar horário de ligamento
 }
 
-void controller_task(void *pvParameters) {
-    /*
-        This task will receive events from:
-        - IHM input - for page/state update
-        - Server - for state update
-    */
-}
 
 static void set_queimador(bool on) {
     if (on) {

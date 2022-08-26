@@ -1,3 +1,3 @@
-idf_component_register(SRCS "ihm_manager.c"
+idf_component_register(SRCS "state_manager.c"
                     INCLUDE_DIRS "include"
                     REQUIRES common)

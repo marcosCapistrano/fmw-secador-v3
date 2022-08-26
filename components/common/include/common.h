@@ -1,13 +1,12 @@
 #ifndef COMMON_H
 #define COMMON_H
 
-enum QueimadorMode_t {
-    PALHA,
-    LENHA
-};
+#define IHM_INPUT_QUEUE_LEN 5
+#define IHM_UPDATE_QUEUE_LEN 5
+#define IHM_QUEUE_SET_LEN (IHM_INPUT_QUEUE_LEN + IHM_UPDATE_QUEUE_LEN)
 
 typedef enum {
-    IHM_UPDATE_TYPE_INIT,
+    IHM_UPDATE_CHANGE_PAGE,
 } IHMUpdateType_t;
 
 typedef enum {
@@ -23,5 +22,16 @@ typedef struct {
     IHMUpdateType_t type;
     void *payload;
 } IHMUpdate_t;
+
+typedef enum {
+    INIT_STORAGE,
+    INIT_PERIF,
+    INIT_IHM,
+    INIT_SERVER
+} StateMessage_t;
+
+typedef enum {
+    OI
+} PerifUpdate_t;
 
 #endif
