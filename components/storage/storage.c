@@ -360,11 +360,11 @@ void storage_init(void) {
     /* append new log to TSDB */
     storage_set_lote_number(storage_get_lote_number() + 1);
     event.type = EVENT_LOTE_NUM_CHANGED;
-    event.value = lote_number;
+    event.value = storage_get_lote_number();
     fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
 
     storage_set_lote_number(storage_get_lote_number() + 1);
-    event.value = lote_number;
+    event.value = storage_get_lote_number();
     fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
 
     fdb_tsl_iter(&tsdb, query_cb, &tsdb);
