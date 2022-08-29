@@ -13,7 +13,7 @@
 static const char *TAG = "STORAGE";
 
 static int lote_number = 0;
-static bool lote_finished = true;
+static bool lote_state = true;
 static bool queimador_mode = false;  // Palha ou Lenha (0 ou  1)
 
 static int min_temp_entr = 0;
@@ -33,7 +33,7 @@ static int max_temp_m4 = 100;
 
 static struct fdb_default_kv_node sto_config_table[] = {
     {"lote_number", &lote_number, sizeof(lote_number)},          /* string KV */
-    {"lote_finished", &lote_finished, sizeof(lote_finished)},    /* string KV */
+    {"lote_state", &lote_state, sizeof(lote_state)},             /* string KV */
     {"queimador_mode", &queimador_mode, sizeof(queimador_mode)}, /* string KV */
     {"min_temp_entr", &min_temp_entr, sizeof(min_temp_entr)},    /* string KV */
     {"max_temp_entr", &max_temp_entr, sizeof(max_temp_entr)},    /* string KV */
@@ -46,9 +46,9 @@ static struct fdb_default_kv_node sto_config_table[] = {
     {"min_temp_m4", &min_temp_m4, sizeof(min_temp_m4)},          /* string KV */
     {"max_temp_m4", &max_temp_m4, sizeof(max_temp_m4)},          /* string KV */
 };
-static struct fdb_kvdb kvdb = {0};
 
-struct fdb_tsdb tsdb = {0};
+static struct fdb_kvdb kvdb = {0};
+static struct fdb_tsdb tsdb = {0};
 
 static SemaphoreHandle_t s_lock = NULL;
 
@@ -61,9 +61,34 @@ static void unlock(fdb_db_t db) {
 }
 
 typedef enum {
-    EVENT_LOTE_FINISHED,
-    EVENT_LOTE_STARTED,
-    EVENT_LOTE_NUM_CHANGED,
+    EVENT_LOTE_NUMBER,
+    EVENT_LOTE_STATE,
+    EVENT_SENSOR_ENTR,
+    EVENT_SENSOR_M1,
+    EVENT_SENSOR_M2,
+    EVENT_SENSOR_M3,
+    EVENT_SENSOR_M4,
+    EVENT_QUEIMADOR_MODE,
+    EVENT_ALARME_ENTRADA,
+    EVENT_ALARME_M1,
+    EVENT_ALARME_M2,
+    EVENT_ALARME_M3,
+    EVENT_ALARME_M4,
+    EVENT_LIMIT_MIN_ENTR,
+    EVENT_LIMIT_MAX_ENTR,
+    EVENT_LIMIT_MIN_M1,
+    EVENT_LIMIT_MAX_M1,
+    EVENT_LIMIT_MIN_M2,
+    EVENT_LIMIT_MAX_M2,
+    EVENT_LIMIT_MIN_M3,
+    EVENT_LIMIT_MAX_M3,
+    EVENT_LIMIT_MIN_M4,
+    EVENT_LIMIT_MAX_M4,
+    EVENT_CONEXAO_M1,
+    EVENT_CONEXAO_M2,
+    EVENT_CONEXAO_M3,
+    EVENT_CONEXAO_M4,
+    EVENT_QUEIMADOR,
 } StorageEventType_t;
 
 typedef struct {
@@ -94,27 +119,35 @@ int storage_get_lote_number() {
 
 void storage_set_lote_number(int new_value) {
     struct fdb_blob blob;
+    StorageEvent_t event;
+
     int sto_lote_num = new_value;
     if (storage_get_lote_number() != new_value) {
-        // set new value on kvdb
         fdb_kv_set_blob(&kvdb, "lote_number", fdb_blob_make(&blob, &sto_lote_num, sizeof(sto_lote_num)));
+        event.type = EVENT_LOTE_NUMBER;
+        event.value = new_value;
+        fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
     }
 }
 
-bool storage_get_lote_finished() {
+bool storage_get_lote_state() {
     struct fdb_blob blob;
-    bool sto_lote_finished = false;
-    fdb_kv_get_blob(&kvdb, "lote_finished", fdb_blob_make(&blob, &sto_lote_finished, sizeof(sto_lote_finished)));
+    bool sto_lote_state = false;
+    fdb_kv_get_blob(&kvdb, "lote_state", fdb_blob_make(&blob, &sto_lote_state, sizeof(sto_lote_state)));
 
-    return sto_lote_finished;
+    return sto_lote_state;
 }
 
-void storage_set_lote_finished(bool new_value) {
+void storage_set_lote_state(bool new_value) {
     struct fdb_blob blob;
-    bool sto_lote_finished = new_value;
-    if (storage_get_lote_finished() != new_value) {
-        // set new value on kvdb
-        fdb_kv_set_blob(&kvdb, "lote_finished", fdb_blob_make(&blob, &sto_lote_finished, sizeof(sto_lote_finished)));
+    StorageEvent_t event;
+
+    bool sto_lote_state = new_value;
+    if (storage_get_lote_state() != new_value) {
+        fdb_kv_set_blob(&kvdb, "lote_state", fdb_blob_make(&blob, &sto_lote_state, sizeof(sto_lote_state)));
+        event.type = EVENT_LOTE_STATE;
+        event.value = new_value;
+        fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
     }
 }
 
@@ -128,10 +161,14 @@ bool storage_get_queimador_mode() {
 
 void storage_set_queimador_mode(bool new_value) {
     struct fdb_blob blob;
+    StorageEvent_t event;
+
     bool sto_queimador_mode = new_value;
     if (storage_get_queimador_mode() != new_value) {
-        // set new value on kvdb
         fdb_kv_set_blob(&kvdb, "queimador_mode", fdb_blob_make(&blob, &sto_queimador_mode, sizeof(sto_queimador_mode)));
+        event.type = EVENT_QUEIMADOR_MODE;
+        event.value = new_value;
+        fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
     }
 }
 
@@ -145,10 +182,15 @@ int storage_get_min_temp_entr() {
 
 void storage_set_min_temp_entr(int new_value) {
     struct fdb_blob blob;
+    StorageEvent_t event;
+
     int sto_min_temp_entr = new_value;
     if (storage_get_min_temp_entr() != new_value) {
         // set new value on kvdb
         fdb_kv_set_blob(&kvdb, "min_temp_entr", fdb_blob_make(&blob, &sto_min_temp_entr, sizeof(sto_min_temp_entr)));
+        event.type = EVENT_LIMIT_MIN_ENTR;
+        event.value = new_value;
+        fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
     }
 }
 
@@ -162,10 +204,15 @@ int storage_get_max_temp_entr() {
 
 void storage_set_max_temp_entr(int new_value) {
     struct fdb_blob blob;
+    StorageEvent_t event;
+
     int sto_max_temp_entr = new_value;
     if (storage_get_max_temp_entr() != new_value) {
         // set new value on kvdb
         fdb_kv_set_blob(&kvdb, "max_temp_entr", fdb_blob_make(&blob, &sto_max_temp_entr, sizeof(sto_max_temp_entr)));
+        event.type = EVENT_LIMIT_MAX_ENTR;
+        event.value = new_value;
+        fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
     }
 }
 
@@ -179,10 +226,15 @@ int storage_get_min_temp_m1() {
 
 void storage_set_min_temp_m1(int new_value) {
     struct fdb_blob blob;
+    StorageEvent_t event;
+
     int sto_min_temp_m1 = new_value;
     if (storage_get_min_temp_m1() != new_value) {
         // set new value on kvdb
         fdb_kv_set_blob(&kvdb, "min_temp_m1", fdb_blob_make(&blob, &sto_min_temp_m1, sizeof(sto_min_temp_m1)));
+        event.type = EVENT_LIMIT_MIN_M1;
+        event.value = new_value;
+        fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
     }
 }
 
@@ -196,15 +248,21 @@ int storage_get_max_temp_m1() {
 
 void storage_set_max_temp_m1(int new_value) {
     struct fdb_blob blob;
+    StorageEvent_t event;
+
     int sto_max_temp_m1 = new_value;
     if (storage_get_max_temp_m1() != new_value) {
         // set new value on kvdb
         fdb_kv_set_blob(&kvdb, "max_temp_m1", fdb_blob_make(&blob, &sto_max_temp_m1, sizeof(sto_max_temp_m1)));
+        event.type = EVENT_LIMIT_MAX_M1;
+        event.value = new_value;
+        fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
     }
 }
 
 int storage_get_min_temp_m2() {
     struct fdb_blob blob;
+
     int sto_min_temp_m2 = 0;
     fdb_kv_get_blob(&kvdb, "min_temp_m2", fdb_blob_make(&blob, &sto_min_temp_m2, sizeof(sto_min_temp_m2)));
 
@@ -213,10 +271,15 @@ int storage_get_min_temp_m2() {
 
 void storage_set_min_temp_m2(int new_value) {
     struct fdb_blob blob;
+    StorageEvent_t event;
+
     int sto_min_temp_m2 = new_value;
     if (storage_get_min_temp_m2() != new_value) {
         // set new value on kvdb
         fdb_kv_set_blob(&kvdb, "min_temp_m2", fdb_blob_make(&blob, &sto_min_temp_m2, sizeof(sto_min_temp_m2)));
+        event.type = EVENT_LIMIT_MIN_M2;
+        event.value = new_value;
+        fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
     }
 }
 
@@ -230,10 +293,15 @@ int storage_get_max_temp_m2() {
 
 void storage_set_max_temp_m2(int new_value) {
     struct fdb_blob blob;
+    StorageEvent_t event;
+
     int sto_max_temp_m2 = new_value;
     if (storage_get_max_temp_m2() != new_value) {
         // set new value on kvdb
         fdb_kv_set_blob(&kvdb, "max_temp_m2", fdb_blob_make(&blob, &sto_max_temp_m2, sizeof(sto_max_temp_m2)));
+        event.type = EVENT_LIMIT_MAX_M2;
+        event.value = new_value;
+        fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
     }
 }
 
@@ -247,10 +315,15 @@ int storage_get_min_temp_m3() {
 
 void storage_set_min_temp_m3(int new_value) {
     struct fdb_blob blob;
+    StorageEvent_t event;
+
     int sto_min_temp_m3 = new_value;
     if (storage_get_min_temp_m3() != new_value) {
         // set new value on kvdb
         fdb_kv_set_blob(&kvdb, "min_temp_m3", fdb_blob_make(&blob, &sto_min_temp_m3, sizeof(sto_min_temp_m3)));
+        event.type = EVENT_LIMIT_MIN_M3;
+        event.value = new_value;
+        fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
     }
 }
 
@@ -264,10 +337,15 @@ int storage_get_max_temp_m3() {
 
 void storage_set_max_temp_m3(int new_value) {
     struct fdb_blob blob;
+    StorageEvent_t event;
+
     int sto_max_temp_m3 = new_value;
     if (storage_get_max_temp_m3() != new_value) {
         // set new value on kvdb
         fdb_kv_set_blob(&kvdb, "max_temp_m3", fdb_blob_make(&blob, &sto_max_temp_m3, sizeof(sto_max_temp_m3)));
+        event.type = EVENT_LIMIT_MAX_M3;
+        event.value = new_value;
+        fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
     }
 }
 
@@ -281,10 +359,15 @@ int storage_get_min_temp_m4() {
 
 void storage_set_min_temp_m4(int new_value) {
     struct fdb_blob blob;
+    StorageEvent_t event;
+
     int sto_min_temp_m4 = new_value;
     if (storage_get_min_temp_m4() != new_value) {
         // set new value on kvdb
         fdb_kv_set_blob(&kvdb, "min_temp_m4", fdb_blob_make(&blob, &sto_min_temp_m4, sizeof(sto_min_temp_m4)));
+        event.type = EVENT_LIMIT_MIN_M4;
+        event.value = new_value;
+        fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
     }
 }
 
@@ -298,11 +381,178 @@ int storage_get_max_temp_m4() {
 
 void storage_set_max_temp_m4(int new_value) {
     struct fdb_blob blob;
+    StorageEvent_t event;
+
     int sto_max_temp_m4 = new_value;
     if (storage_get_max_temp_m4() != new_value) {
         // set new value on kvdb
         fdb_kv_set_blob(&kvdb, "max_temp_m4", fdb_blob_make(&blob, &sto_max_temp_m4, sizeof(sto_max_temp_m4)));
+        event.type = EVENT_LIMIT_MAX_M4;
+        event.value = new_value;
+        fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
     }
+}
+
+void storage_set_sensor_entrada(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_SENSOR_ENTR;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_sensor_m1(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_SENSOR_M1;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_sensor_m2(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_SENSOR_M2;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_sensor_m3(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_SENSOR_M3;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_sensor_m4(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_SENSOR_M4;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_alarme_entr(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_ALARME_ENTRADA;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_alarme_m1(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_ALARME_M1;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_alarme_m2(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_ALARME_M2;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_alarme_m3(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_ALARME_M3;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_alarme_m4(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_ALARME_M4;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_queimador(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_QUEIMADOR;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_conexao_m1(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_CONEXAO_M1;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_conexao_m2(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_CONEXAO_M1;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_conexao_m3(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_CONEXAO_M1;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_conexao_m4(int new_value) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_CONEXAO_M1;
+    event.value = new_value;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_init_time() {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    event.type = EVENT_INIT;
+    event.value = 0;
+    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
+}
+
+void storage_set_lote_start_config(int lote_number, int limit_min_entr, int limit_max_entr, int limit_min_m1, int limit_max_m1, int limit_min_m2, int limit_max_m2, int limit_min_m3, int limit_max_m3, int limit_min_m4, int limit_max_m4, int queimador_mode) {
+    storage_set_lote_number(lote_number);
+
+    storage_set_min_temp_entr(limit_min_entr);
+    storage_set_max_temp_entr(limit_max_entr);
+
+    storage_set_min_temp_m1(limit_min_m1);
+    storage_set_max_temp_m1(limit_max_m1);
+    storage_set_min_temp_m2(limit_min_m2);
+    storage_set_max_temp_m2(limit_max_m2);
+    storage_set_min_temp_m3(limit_min_m3);
+    storage_set_max_temp_m3(limit_max_m3);
+    storage_set_min_temp_m4(limit_min_m4);
+    storage_set_max_temp_m4(limit_max_m4);
+
+    storage_set_queimador_mode(queimador_mode);
 }
 
 void storage_init(void) {
@@ -353,60 +603,6 @@ void storage_init(void) {
     if (result != FDB_NO_ERR) {
         ESP_LOGE(TAG, "Storage FAILED!");
     }
-
-    StorageEvent_t event;
-    struct fdb_blob blob;
-
-    /* append new log to TSDB */
-    storage_set_lote_number(storage_get_lote_number() + 1);
-    event.type = EVENT_LOTE_NUM_CHANGED;
-    event.value = storage_get_lote_number();
-    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
-
-    storage_set_lote_number(storage_get_lote_number() + 1);
-    event.value = storage_get_lote_number();
-    fdb_tsl_append(&tsdb, fdb_blob_make(&blob, &event, sizeof(event)));
-
-    fdb_tsl_iter(&tsdb, query_cb, &tsdb);
-
-    struct tm tm_from = {.tm_year = 1970 - 1900, .tm_mon = 0, .tm_mday = 1, .tm_hour = 0, .tm_min = 0, .tm_sec = 0};
-    struct tm tm_to = {.tm_year = 2020 - 1900, .tm_mon = 4, .tm_mday = 5, .tm_hour = 0, .tm_min = 0, .tm_sec = 0};
-    time_t from_time = mktime(&tm_from), to_time = mktime(&tm_to);
-    size_t count;
-    /* query all TSL in TSDB by time */
-    fdb_tsl_iter_by_time(&tsdb, from_time, to_time, query_by_time_cb, &tsdb);
-    /* query all FDB_TSL_WRITE status TSL's count in TSDB by time */
-    count = fdb_tsl_query_count(&tsdb, from_time, to_time, FDB_TSL_WRITE);
-
-    fdb_tsl_iter(&tsdb, set_status_cb, &tsdb);
-}
-
-static bool query_cb(fdb_tsl_t tsl, void *arg) {
-    struct fdb_blob blob;
-    StorageEvent_t event;
-    fdb_tsdb_t db = arg;
-
-    fdb_blob_read((fdb_db_t)db, fdb_tsl_to_blob(tsl, fdb_blob_make(&blob, &event, sizeof(event))));
-    ESP_LOGI(TAG, "[query_cb] queried a TSL: time: %d, type: %d, value: %d\n", tsl->time, event.type, event.value);
-    return false;
-}
-
-static bool query_by_time_cb(fdb_tsl_t tsl, void *arg) {
-    struct fdb_blob blob;
-    StorageEvent_t event;
-    fdb_tsdb_t db = arg;
-
-    fdb_blob_read((fdb_db_t)db, fdb_tsl_to_blob(tsl, fdb_blob_make(&blob, &event, sizeof(event))));
-
-    return false;
-}
-
-static bool set_status_cb(fdb_tsl_t tsl, void *arg) {
-    fdb_tsdb_t db = arg;
-
-    fdb_tsl_set_status(db, tsl, FDB_TSL_USER_STATUS1);
-
-    return false;
 }
 
 // #define NAMESPACE "config"
