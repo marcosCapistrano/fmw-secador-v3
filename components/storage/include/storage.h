@@ -4,6 +4,11 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
+typedef struct {
+    StorageEventType_t type;
+    int value;
+} StorageEvent_t;
+
 void storage_init();
 
 bool get_queimador_mode();

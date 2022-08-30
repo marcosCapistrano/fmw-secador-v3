@@ -91,11 +91,6 @@ typedef enum {
     EVENT_QUEIMADOR,
 } StorageEventType_t;
 
-typedef struct {
-    StorageEventType_t type;
-    int value;
-} StorageEvent_t;
-
 static bool query_cb(fdb_tsl_t tsl, void *arg);
 static bool query_by_time_cb(fdb_tsl_t tsl, void *arg);
 static bool set_status_cb(fdb_tsl_t tsl, void *arg);
@@ -553,6 +548,72 @@ void storage_set_lote_start_config(int lote_number, int limit_min_entr, int limi
     storage_set_max_temp_m4(limit_max_m4);
 
     storage_set_queimador_mode(queimador_mode);
+}
+
+static bool query_all_lotes_cb(fdb_tsl_t tsl, void *arg) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+
+    int *array_head = arg;
+
+    fdb_blob_read((fdb_db_t)db, fdb_tsl_to_blob(tsl, fdb_blob_make(&blob, &event, sizeof(event))));
+    if (event.type == EVENT_LOTE_NUMBER) {
+        *array_head = event.value;
+        array_head++;
+    }
+
+    return false;
+}
+
+int *storage_get_all_lotes(int *length) {
+    int all_lotes[100] = {0};
+
+    fdb_tsl_iter(&tsdb, query_all_lotes_cb, &all_lotes);
+    for (int i = 0; i < 100; i++) {
+        if (all_lotes[i] == 0) {
+            *length = i;
+            return all_lotes;
+        }
+    }
+
+    return 0;
+}
+
+static bool query_lote_events_cb(fdb_tsl_t tsl, void *arg) {
+    struct fdb_blob blob;
+    StorageEvent_t event;
+    StorageEvent_t *array_head = arg;
+
+    fdb_blob_read((fdb_db_t)db, fdb_tsl_to_blob(tsl, fdb_blob_make(&blob, &event, sizeof(event))));
+    *array_head = event;
+    array_head++;
+
+    return false;
+}
+
+StorageEvent_t *storage_get_lote_events(int lote_number, int *length) {
+    StorageEvent_t all_events[500] = {0};
+    StorageEvent_t lote_events[200] = {0};
+
+    fdb_tsl_iter(&tsdb, query_lote_events_cb, &all_events);
+
+    bool found_lote = false;
+    for (int i = 0; i < 500; i++) {
+        if (found_lote) {
+            if (all_events[i].type == LOTE_NUMBER) {
+                *length = i;
+                return lote_events;
+            }
+
+            lote_events[i] == all_events[i];
+        } else {
+            if (all_events[i].type == LOTE_NUMBER && all_events[i].value == lote_number) {
+                found_lote = true;
+            }
+        }
+    }
+
+    return NULL;
 }
 
 void storage_init(void) {

@@ -65,6 +65,13 @@ static httpd_uri_t uri_ws = {
     .is_websocket = true};
 
 static esp_err_t on_lotes_handler(httpd_req_t* req) {
+    // return all available lotes in an array
+    int length = 0;
+    int *all_lotes = storage_get_all_lotes(&length);
+
+    for(int i=0; i<length; i++) {
+        ESP_LOGI(TAG, "Found lote: %d", all_lotes[i]);
+    }
     return ESP_OK;
 }
 
@@ -74,6 +81,12 @@ static httpd_uri_t uri_lotes = {
     .handler = on_lotes_handler};
 
 static esp_err_t on_lote_id_handler(httpd_req_t* req) {
+    int length = 0;
+    StorageEvent_t *all_events = storage_get_lote_events(1, &length);
+
+    for(int i=0; i<length; i++) {
+        ESP_LOGI(TAG, "Found lote event: %d, %d", all_events[i].type, all_events[i].value);
+    }
     return ESP_OK;
 }
 
