@@ -57,45 +57,27 @@ static esp_err_t on_ws_handler(httpd_req_t* req) {
     free(buf);
     return ret;
 }
-
 static httpd_uri_t uri_ws = {
     .uri = "/ws",
     .method = HTTP_GET,
     .handler = on_ws_handler,
     .is_websocket = true};
 
-static esp_err_t on_lotes_handler(httpd_req_t* req) {
-    // return all available lotes in an array
+static esp_err_t on_get_events_handler(httpd_req_t* req) {
     int length = 0;
-    int *all_lotes = storage_get_all_lotes(&length);
+    int* all_lotes = storage_get_all_lotes(&length);
 
-    for(int i=0; i<length; i++) {
+    for (int i = 0; i < length; i++) {
         ESP_LOGI(TAG, "Found lote: %d", all_lotes[i]);
     }
     return ESP_OK;
 }
-
-static httpd_uri_t uri_lotes = {
-    .uri = "/lotes",
+static httpd_uri_t uri_get_events = {
+    .uri = "/events",
     .method = HTTP_GET,
     .handler = on_lotes_handler};
 
-static esp_err_t on_lote_id_handler(httpd_req_t* req) {
-    int length = 0;
-    StorageEvent_t *all_events = storage_get_lote_events(1, &length);
-
-    for(int i=0; i<length; i++) {
-        ESP_LOGI(TAG, "Found lote event: %d, %d", all_events[i].type, all_events[i].value);
-    }
-    return ESP_OK;
-}
-
-static httpd_uri_t uri_lote_id = {
-    .uri = "/lote/*",
-    .method = HTTP_GET,
-    .handler = on_lote_id_handler};
-
-static esp_err_t on_base_handler(httpd_req_t* req) {
+static esp_err_t on_root_handler(httpd_req_t* req) {
     char path[600];
     if (strcmp(req->uri, "/") == 0) {
         strcpy(path, "/spiffs/index.html");
@@ -131,11 +113,10 @@ static esp_err_t on_base_handler(httpd_req_t* req) {
     // storage_close_file(file);
     return ESP_OK;
 }
-
-static httpd_uri_t uri_base = {
+static httpd_uri_t uri_root = {
     .uri = "/*",
     .method = HTTP_GET,
-    .handler = on_base_handler};
+    .handler = on_root_handler};
 
 static httpd_handle_t start_webserver(void) {
     httpd_handle_t server = NULL;
@@ -147,9 +128,8 @@ static httpd_handle_t start_webserver(void) {
         // Set URI handlers
         ESP_LOGI(TAG, "Registering URI handlers");
         httpd_register_uri_handler(server, &uri_ws);  // WEBSOCKET dos ESP32
-        httpd_register_uri_handler(server, &uri_lote_id);
-        httpd_register_uri_handler(server, &uri_lotes);
-        httpd_register_uri_handler(server, &uri_base);
+        httpd_register_uri_handler(server, &uri_get_events);
+        httpd_register_uri_handler(server, &uri_root);
         return server;
     }
 
@@ -161,9 +141,7 @@ static void stop_webserver(httpd_handle_t server) {
     // Stop the httpd server
     httpd_stop(server);
 }
-
-static void disconnect_handler(void* arg, esp_event_base_t event_base,
-                               int32_t event_id, void* event_data) {
+static void disconnect_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     httpd_handle_t* server = (httpd_handle_t*)arg;
     if (*server) {
         ESP_LOGI(TAG, "Stopping webserver");
@@ -171,9 +149,7 @@ static void disconnect_handler(void* arg, esp_event_base_t event_base,
         *server = NULL;
     }
 }
-
-static void connect_handler(void* arg, esp_event_base_t event_base,
-                            int32_t event_id, void* event_data) {
+static void connect_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     httpd_handle_t* server = (httpd_handle_t*)arg;
     if (*server == NULL) {
         ESP_LOGI(TAG, "Starting webserver");
@@ -183,7 +159,6 @@ static void connect_handler(void* arg, esp_event_base_t event_base,
 
 void server_controller_init(void) {
     ESP_LOGI(TAG, "Iniciando Wi-Fi...");
-
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     esp_netif_create_default_wifi_ap();
@@ -205,12 +180,9 @@ void server_controller_init(void) {
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
-
     ESP_LOGI(TAG, "Wi-Fi OK!");
 
     ESP_LOGI(TAG, "Iniciando Servidor WEB...");
-
     server_handle = start_webserver();
-
     ESP_LOGI(TAG, "Servidor WEB OK!");
 }
