@@ -4,81 +4,89 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
-typedef struct {
-    StorageEventType_t type;
-    int value;
-} StorageEvent_t;
-
 void storage_init();
 
-bool get_queimador_mode();
+uint8_t storage_get_lote_number();
+void storage_set_lote_number(uint8_t new_value);
 
-bool get_queimador_state();
-bool get_alarme_state();
+bool storage_get_lote_concluded();
+void storage_set_lote_concluded(bool new_value);
 
-bool get_m1_connected();
-bool get_m2_connected();
-bool get_m3_connected();
-bool get_m4_connected();
+bool storage_get_queimador_mode();
+void storage_set_queimador_mode(bool new_value);
 
-bool get_entr_aware();
-bool get_m1_aware();
-bool get_m2_aware();
-bool get_m3_aware();
-bool get_m4_aware();
+bool storage_get_queimador_state();
+void storage_set_queimador_state(bool new_value);
 
-uint8_t get_temp_entr();
-uint8_t get_temp_m1();
-uint8_t get_temp_m2();
-uint8_t get_temp_m3();
-uint8_t get_temp_m4();
+uint8_t storage_get_sensor_entr();
+void storage_set_sensor_entr(uint8_t new_value);
 
-uint8_t get_min_temp_entr();
-uint8_t get_max_temp_entr();
+uint8_t storage_get_sensor_m1();
+void storage_set_sensor_m1(uint8_t new_value);
 
-uint8_t get_min_temp_m1();
-uint8_t get_max_temp_m1();
+uint8_t storage_get_sensor_m2();
+void storage_set_sensor_m2(uint8_t new_value);
 
-uint8_t get_min_temp_m2();
-uint8_t get_max_temp_m2();
+uint8_t storage_get_sensor_m3(); 
+void storage_set_sensor_m3(uint8_t new_value);
 
-uint8_t get_min_temp_m3();
-uint8_t get_max_temp_m3();
+uint8_t storage_get_sensor_m4();
+void storage_set_sensor_m4(uint8_t new_value);
 
-uint8_t get_min_temp_m4();
-uint8_t get_max_temp_m4();
+bool storage_get_alarme_entr();
+void storage_set_alarme_entr(bool new_value);
 
-void set_queimador_mode(bool new_value);
+bool storage_get_alarme_m1();
+void storage_set_alarme_m1(bool new_value);
 
-void set_queimador_state(bool new_value);
-void set_alarme_state(bool new_value);
+bool storage_get_alarme_m2();
+void storage_set_alarme_m2(bool new_value);
 
-void set_m1_connected(bool new_value);
-void set_m2_connected(bool new_value);
-void set_m3_connected(bool new_value);
-void set_m4_connected(bool new_value);
+bool storage_get_alarme_m3();
+void storage_set_alarme_m3(bool new_value);
 
-void set_entr_aware(bool new_value);
-void set_m1_aware(bool new_value);
-void set_m2_aware(bool new_value);
-void set_m3_aware(bool new_value);
-void set_m4_aware(bool new_value);
+bool storage_get_alarme_m4();
+void storage_set_alarme_m4(bool new_value);
 
-void set_temp_entr(uint8_t new_value);
-void set_temp_m1(uint8_t new_value);
-void set_temp_m2(uint8_t new_value);
-void set_temp_m3(uint8_t new_value);
-void set_temp_m4(uint8_t new_value);
+uint8_t storage_get_min_entr();
+void storage_set_min_entr(uint8_t new_value);
 
-void set_min_temp_entr(uint8_t new_value);
-void set_max_temp_entr(uint8_t new_value);
-void set_min_temp_m1(uint8_t new_value);
-void set_max_temp_m1(uint8_t new_value);
-void set_min_temp_m2(uint8_t new_value);
-void set_max_temp_m2(uint8_t new_value);
-void set_min_temp_m3(uint8_t new_value);
-void set_max_temp_m3(uint8_t new_value);
-void set_min_temp_m4(uint8_t new_value);
-void set_max_temp_m4(uint8_t new_value);
+uint8_t storage_get_max_entr();
+void storage_set_max_entr(uint8_t new_value);
+
+uint8_t storage_get_min_m1();
+void storage_set_min_m1(uint8_t new_value);
+
+uint8_t storage_get_max_m1();
+void storage_set_max_m1(uint8_t new_value);
+
+uint8_t storage_get_min_m2();
+void storage_set_min_m2(uint8_t new_value);
+
+uint8_t storage_get_max_m2();
+void storage_set_max_m2(uint8_t new_value);
+
+uint8_t storage_get_min_m3();
+void storage_set_min_m3(uint8_t new_value);
+
+uint8_t storage_get_max_m3();
+void storage_set_max_m3(uint8_t new_value);
+
+uint8_t storage_get_min_m4();
+void storage_set_min_m4(uint8_t new_value);
+uint8_t storage_get_max_m4();
+void storage_set_max_m4(uint8_t new_value);
+
+bool storage_get_conexao_m1();
+void storage_set_conexao_m1(bool new_value);
+
+bool storage_get_conexao_m2();
+void storage_set_conexao_m2(bool new_value);
+
+bool storage_get_conexao_m3();
+void storage_set_conexao_m3(bool new_value);
+
+bool storage_get_conexao_m4();
+void storage_set_conexao_m4(bool new_value);
 
 #endif

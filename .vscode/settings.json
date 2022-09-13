@@ -24,6 +24,13 @@
         "type_traits": "cpp",
         "utility": "cpp",
         "perif_controller.h": "c",
-        "freertos.h": "c"
+        "freertos.h": "c",
+        "*.tcc": "c",
+        "fstream": "c",
+        "*.ipp": "c"
+    },
+    "taskExplorer.enableMake": false,
+    "search.exclude": {
+        "**/build": true
     }
 }

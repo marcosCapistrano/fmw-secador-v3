@@ -6,16 +6,49 @@
 #include "esp_event.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
+#include "esp_vfs.h"
 #include "esp_wifi.h"
 
 #define WIFI_AP_SSID "AusyxSolucoes"
 #define WIFI_AP_PASS "12345678"
 
-static const char* TAG = "server_controller";
+#define FILE_PATH_MAX (ESP_VFS_PATH_MAX + 128)
+#define SCRATCH_BUFSIZE (10240)
+
+static const char* TAG = "SERVER_CONTROLLER";
+
+typedef struct rest_server_context {
+    char base_path[ESP_VFS_PATH_MAX + 1];
+    char scratch[SCRATCH_BUFSIZE];
+} rest_server_context_t;
 
 static httpd_handle_t server_handle = NULL;
+static rest_server_context_t rest_context = {
+    .base_path = "/website",
+    .scratch = {0}};
+
 extern QueueHandle_t server_update_q;
 extern QueueHandle_t state_manager_q;
+
+#define CHECK_FILE_EXTENSION(filename, ext) (strcasecmp(&filename[strlen(filename) - strlen(ext)], ext) == 0)
+
+static esp_err_t set_content_type_from_file(httpd_req_t* req, const char* filepath) {
+    const char* type = "text/plain";
+    if (CHECK_FILE_EXTENSION(filepath, ".html")) {
+        type = "text/html";
+    } else if (CHECK_FILE_EXTENSION(filepath, ".js")) {
+        type = "application/javascript";
+    } else if (CHECK_FILE_EXTENSION(filepath, ".css")) {
+        type = "text/css";
+    } else if (CHECK_FILE_EXTENSION(filepath, ".png")) {
+        type = "image/png";
+    } else if (CHECK_FILE_EXTENSION(filepath, ".ico")) {
+        type = "image/x-icon";
+    } else if (CHECK_FILE_EXTENSION(filepath, ".svg")) {
+        type = "text/xml";
+    }
+    return httpd_resp_set_type(req, type);
+}
 
 static esp_err_t on_ws_handler(httpd_req_t* req) {
     if (req->method == HTTP_GET) {
@@ -63,54 +96,69 @@ static httpd_uri_t uri_ws = {
     .handler = on_ws_handler,
     .is_websocket = true};
 
-static esp_err_t on_get_events_handler(httpd_req_t* req) {
-    int length = 0;
-    int* all_lotes = storage_get_all_lotes(&length);
-
-    for (int i = 0; i < length; i++) {
-        ESP_LOGI(TAG, "Found lote: %d", all_lotes[i]);
-    }
+static esp_err_t on_get_lotes_handler(httpd_req_t* req) {
+    ESP_LOGI(TAG, "Got on lotes");
     return ESP_OK;
 }
-static httpd_uri_t uri_get_events = {
-    .uri = "/events",
+static httpd_uri_t uri_get_lotes = {
+
+    .uri = "/lotes",
     .method = HTTP_GET,
-    .handler = on_lotes_handler};
+    .handler = on_get_lotes_handler};
+
+static esp_err_t on_get_lote_id_handler(httpd_req_t* req) {
+    return ESP_OK;
+}
+static httpd_uri_t uri_get_lote_id = {
+    .uri = "/lote/:id",
+    .method = HTTP_GET,
+    .handler = on_get_lote_id_handler};
 
 static esp_err_t on_root_handler(httpd_req_t* req) {
-    char path[600];
-    if (strcmp(req->uri, "/") == 0) {
-        strcpy(path, "/spiffs/index.html");
+    char filepath[FILE_PATH_MAX];
+
+    strlcpy(filepath, rest_context.base_path, sizeof(filepath));
+    if (req->uri[strlen(req->uri) - 1] == '/') {
+        strlcat(filepath, "/index.html", sizeof(filepath));
     } else {
-        sprintf(path, "/spiffs%s", req->uri);
+        strlcat(filepath, req->uri, sizeof(filepath));
     }
 
-    char* ext = strrchr(path, '.');
-    if (strcmp(ext, ".css") == 0) {
-        httpd_resp_set_type(req, "text/css");
-    }
-    if (strcmp(ext, ".js") == 0) {
-        httpd_resp_set_type(req, "text/javascript");
-    }
-    if (strcmp(ext, ".png") == 0) {
-        httpd_resp_set_type(req, "image/png");
+    int fd = open(filepath, O_RDONLY, 0);
+    if (fd == -1) {
+        ESP_LOGE(TAG, "Failed to open file : %s", filepath);
+        /* Respond with 500 Internal Server Error */
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read existing file");
+        return ESP_FAIL;
     }
 
-    // handle other files
+    set_content_type_from_file(req, filepath);
 
-    // FILE* file = storage_open_file_r(path);
-    // if (file == NULL) {
-    //     httpd_resp_send_404(req);
-    //     return ESP_OK;
-    // }
-
-    // char lineRead[256];
-    // while (fgets(lineRead, sizeof(lineRead), file)) {
-    //     httpd_resp_sendstr_chunk(req, lineRead);
-    // }
-
-    // httpd_resp_sendstr_chunk(req, NULL);
-    // storage_close_file(file);
+    char* chunk = rest_context.scratch;
+    ssize_t read_bytes;
+    do {
+        /* Read file in chunks into the scratch buffer */
+        read_bytes = read(fd, chunk, SCRATCH_BUFSIZE);
+        if (read_bytes == -1) {
+            ESP_LOGE(TAG, "Failed to read file : %s", filepath);
+        } else if (read_bytes > 0) {
+            /* Send the buffer contents as HTTP response chunk */
+            if (httpd_resp_send_chunk(req, chunk, read_bytes) != ESP_OK) {
+                close(fd);
+                ESP_LOGE(TAG, "File sending failed!");
+                /* Abort sending file */
+                httpd_resp_sendstr_chunk(req, NULL);
+                /* Respond with 500 Internal Server Error */
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
+                return ESP_FAIL;
+            }
+        }
+    } while (read_bytes > 0);
+    /* Close file after sending complete */
+    close(fd);
+    ESP_LOGI(TAG, "File sending complete");
+    /* Respond with an empty chunk to signal HTTP response completion */
+    httpd_resp_send_chunk(req, NULL, 0);
     return ESP_OK;
 }
 static httpd_uri_t uri_root = {
@@ -121,6 +169,7 @@ static httpd_uri_t uri_root = {
 static httpd_handle_t start_webserver(void) {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.uri_match_fn = httpd_uri_match_wildcard;
 
     // Start the httpd server
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
@@ -128,7 +177,8 @@ static httpd_handle_t start_webserver(void) {
         // Set URI handlers
         ESP_LOGI(TAG, "Registering URI handlers");
         httpd_register_uri_handler(server, &uri_ws);  // WEBSOCKET dos ESP32
-        httpd_register_uri_handler(server, &uri_get_events);
+        httpd_register_uri_handler(server, &uri_get_lotes);
+        httpd_register_uri_handler(server, &uri_get_lote_id);
         httpd_register_uri_handler(server, &uri_root);
         return server;
     }

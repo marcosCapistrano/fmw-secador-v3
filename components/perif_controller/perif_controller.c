@@ -1,26 +1,26 @@
 #include "perif_controller.h"
 
 #include <stdbool.h>
+
+#include "common.h"
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
-
 #include "storage.h"
-#include "common.h"
 
-#define PIN_QUEIMADOR 12
-#define PIN_ALARME 13
+#define PIN_QUEIMADOR 21
+#define PIN_ALARME 22
 #define PIN_MASSA_QUENTE 4
 #define PIN_MASSA_FRIO 5
 #define PIN_ENTRADA_QUENTE 2
 #define PIN_ENTRADA_FRIO 0
 #define PIN_CONEXAO 18
-#define PIN_SENSOR 15
+#define PIN_SENSOR 19
 
 #define GPIO_OUTPUT_SEL ((1ULL << PIN_QUEIMADOR) | (1ULL << PIN_ALARME) | (1ULL << PIN_MASSA_QUENTE) | (1ULL << PIN_MASSA_FRIO) | (1ULL << PIN_ENTRADA_QUENTE) | (1ULL << PIN_ENTRADA_FRIO) | (1ULL << PIN_CONEXAO))
 #define GPIO_INPUT_SEL (1ULL << PIN_SENSOR)
 
-extern QueueHandle_t state_manager_q;
+extern QueueHandle_t perif_msg_q;
 
 static void set_queimador(bool on);
 static void set_alarme(bool on);
@@ -30,16 +30,18 @@ static void set_led_mass_quente(bool on);
 static void set_led_mass_frio(bool on);
 static void set_led_conexao(bool on);
 
+/*
+    This task will receive events from:
+    - IHM input - for page/state update
+    - Server - for state update
+*/
 static void perif_controller_task(void *pvParameters) {
-    /*
-        This task will receive events from:
-        - IHM input - for page/state update
-        - Server - for state update
-    */
-}
+    PerifMessage_t perif_msg;
 
-void perif_controller_start_task() {
-    xTaskCreate(perif_controller_task, "PERIF_CONTROLLER_TASK", 2400, NULL, 5, NULL);
+    for (;;) {
+        if (xQueueReceive(perif_msg_q, &perif_msg, portMAX_DELAY)) {
+        }
+    }
 }
 
 void perif_controller_init(void) {
@@ -60,14 +62,8 @@ void perif_controller_init(void) {
     set_led_entr_frio(false);
     set_led_conexao(false);
 
-    // Inicializar leitor sensor físico
-
-    // Notificar LCD
-    StateMessage_t state_msg = INIT_PERIF;
-    xQueueSend(state_manager_q, &state_msg, portMAX_DELAY);
-    // Salvar horário de ligamento
+    xTaskCreate(perif_controller_task, "PERIF_CONTROLLER_TASK", 2400, NULL, 5, NULL);
 }
-
 
 static void set_queimador(bool on) {
     if (on) {

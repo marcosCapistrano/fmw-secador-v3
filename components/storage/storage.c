@@ -1,12 +1,13 @@
-#include <stdio.h>
 #include "storage.h"
 
+#include <stdio.h>
+
 #include "esp_log.h"
-#include "esp_spi_flash.h"
 #include "esp_system.h"
+#include "nvs_flash.h"
+#include "esp_spiffs.h"
 
 #define NAMESPACE "config"
-
 #define LOTE_NUMBER_KEY "lote_number"
 #define LOTE_CONCLUDED_KEY "lote_concluded"
 
@@ -40,7 +41,6 @@
 #define CONEXAO_M2_KEY "m2_connect"
 #define CONEXAO_M3_KEY "m3_connect"
 #define CONEXAO_M4_KEY "m4_connect"
-
 
 static const char *TAG = "STORAGE";
 
@@ -79,11 +79,17 @@ typedef enum {
     EVENT_CONEXAO_M4,
 } StorageEventType_t;
 
-static nvs_handle_t nvs_handle;
+typedef struct {
+    StorageEventType_t type;
+    int value;
+} StorageEvent_t;
+
+static nvs_handle_t my_nvs_handle;
 
 static uint8_t lote_number = 0;
 static bool lote_concluded = true;  // FALSE = Começado, não finalizado, TRUE = Finalizado
-static bool queimador_mode = false;
+static bool queimador_mode = false; // FALSE = Palha, TRUE = Lenha
+static bool queimador_state = false;
 
 static uint8_t sensor_entr = 0;
 static uint8_t sensor_m1 = 0;
@@ -116,9 +122,9 @@ static bool conexao_m4 = false;
 static bool get_bool(const char *key, bool base_value) {
     uint8_t temp_out;
 
-    esp_err_t err = nvs_get_u8(nvs_handle, key, &temp_out);
+    esp_err_t err = nvs_get_u8(my_nvs_handle, key, &temp_out);
     if (err != ESP_OK) {
-        nvs_set_u8(nvs_handle, key, base_value);
+        nvs_set_u8(my_nvs_handle, key, base_value);
         return base_value;
     }
 
@@ -130,28 +136,28 @@ static bool get_bool(const char *key, bool base_value) {
 }
 static void set_bool(const char *key, bool new_value) {
     if (new_value) {
-        ESP_ERROR_CHECK(nvs_set_u8(nvs_handle, key, 1));
+        ESP_ERROR_CHECK(nvs_set_u8(my_nvs_handle, key, 1));
     } else {
-        ESP_ERROR_CHECK(nvs_set_u8(nvs_handle, key, 0));
+        ESP_ERROR_CHECK(nvs_set_u8(my_nvs_handle, key, 0));
     }
 
-    nvs_commit(nvs_handle);
+    nvs_commit(my_nvs_handle);
 }
 static uint8_t get_u8(const char *key, uint8_t base_value) {
     uint8_t temp_out;
 
-    esp_err_t err = nvs_get_u8(nvs_handle, key, &temp_out);
+    esp_err_t err = nvs_get_u8(my_nvs_handle, key, &temp_out);
     if (err != ESP_OK) {
-        nvs_set_u8(nvs_handle, key, base_value);
+        nvs_set_u8(my_nvs_handle, key, base_value);
         return base_value;
     }
 
     return temp_out;
 }
 static void set_u8(const char *key, uint8_t new_value) {
-    ESP_ERROR_CHECK(nvs_set_u8(nvs_handle, key, new_value));
+    ESP_ERROR_CHECK(nvs_set_u8(my_nvs_handle, key, new_value));
 
-    nvs_commit(nvs_handle);
+    nvs_commit(my_nvs_handle);
 }
 
 uint8_t storage_get_lote_number() {
@@ -434,6 +440,10 @@ void storage_set_conexao_m4(bool new_value) {
     }
 }
 
+void storage_get_all_lotes() {
+
+}
+
 static void initialize_cache() {
     lote_number = get_u8(LOTE_NUMBER_KEY, 0);
     lote_concluded = get_bool(LOTE_CONCLUDED_KEY, true);
@@ -455,14 +465,14 @@ static void initialize_cache() {
 
     limit_min_entr = get_u8(ENTR_MIN_KEY, 0);
     limit_max_entr = get_u8(ENTR_MAX_KEY, 100);
-    limit_min_m1 = get_u8(ENTR_M1_KEY, 0);
-    limit_max_m1 = get_u8(ENTR_M1_KEY, 100);
-    limit_min_m2 = get_u8(ENTR_M2_KEY, 0);
-    limit_max_m2 = get_u8(ENTR_M2_KEY, 100);
-    limit_min_m3 = get_u8(ENTR_M3_KEY, 0);
-    limit_max_m3 = get_u8(ENTR_M3_KEY, 100);
-    limit_min_m4 = get_u8(ENTR_M4_KEY, 0);
-    limit_max_m4 = get_u8(ENTR_M4_KEY, 100);
+    limit_min_m1 = get_u8(M1_MIN_KEY, 0);
+    limit_max_m1 = get_u8(M1_MAX_KEY, 100);
+    limit_min_m2 = get_u8(M2_MIN_KEY, 0);
+    limit_max_m2 = get_u8(M2_MAX_KEY, 100);
+    limit_min_m3 = get_u8(M3_MIN_KEY, 0);
+    limit_max_m3 = get_u8(M3_MAX_KEY, 100);
+    limit_min_m4 = get_u8(M4_MIN_KEY, 0);
+    limit_max_m4 = get_u8(M4_MAX_KEY, 100);
 
     conexao_m1 = get_bool(CONEXAO_M1_KEY, false);
     conexao_m2 = get_bool(CONEXAO_M2_KEY, false);
@@ -470,17 +480,39 @@ static void initialize_cache() {
     conexao_m4 = get_bool(CONEXAO_M4_KEY, false);
 }
 
+static void initialize_fs() {
+    esp_vfs_spiffs_conf_t web_conf = {
+        .base_path = "/website",
+        .partition_label = NULL,
+        .max_files = 5,
+        .format_if_mount_failed = false};
 
+    // esp_vfs_spiffs_conf_t storage_conf = {
+    //     .base_path = "/storage",
+    //     .partition_label = NULL,
+    //     .max_files = 5,
+    //     .format_if_mount_failed = false};
+
+    ESP_ERROR_CHECK(esp_vfs_spiffs_register(&web_conf));
+    // ESP_ERROR_CHECK(esp_vfs_spiffs_register(&storage_conf));
+
+    size_t total = 0, used = 0;
+    esp_err_t ret = esp_spiffs_info(NULL, &total, &used);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
+    } else {
+        ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
+    }
+}
 
 void storage_init(void) {
     ESP_LOGI(TAG, "Inicializando Armazenamento...");
     esp_err_t err;
 
-    //NVS para Configurações persistentes e persistencia de alguns outros valores
-    err = nvs_open("config", NVS_READWRITE, &nvs_handle);
+    // NVS para Configurações persistentes e persistencia de alguns outros valores
+    err = nvs_open("config", NVS_READWRITE, &my_nvs_handle);
     ESP_ERROR_CHECK(err);
 
     initialize_cache();
+    initialize_fs();
 }
-
-static const char *TAG = "STORAGE";
