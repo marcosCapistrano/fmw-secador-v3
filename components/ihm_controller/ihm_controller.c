@@ -33,6 +33,16 @@ extern QueueHandle_t state_msg_q;
 
 static const char *TAG = "IHM_MANAGER";
 
+typedef struct {
+    uint8_t limit_min;
+    uint8_t limit_max;
+} LimitPageDetails_t;
+
+static LimitPageDetails_t limit_page_details = {
+    .limit_min = -1,
+    .limit_max = -1,
+};
+
 static void write_to_ihm(const char *command) {
     size_t length = strlen(command);
 
@@ -76,10 +86,27 @@ static void write_change_page(int value) {
 
 static void write_queimador_mode(bool mode) {
     if (mode) {
-        write_button_pic_id(5, 24);
+        write_button_pic_id(5, 22);
     } else {
-        write_button_pic_id(5, 29);
+        write_button_pic_id(5, 23);
     }
+}
+
+static int extract_number_from_get(uint8_t *buf, size_t length) {
+    int start_index = 1;
+
+    for (int i = 0; i < length; i++) {
+        if (buf[i] == 255) {
+            int numBuf[3];
+            int addressOffset = i - start_index;
+
+            memcpy(numBuf, &buf[start_index], addressOffset * sizeof(*buf));
+            int num = atoi(numBuf);
+            return num;
+        }
+    }
+
+    return -1;
 }
 
 static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
@@ -94,7 +121,7 @@ static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
             write_change_page(5);
         } else if (component_id == 11) {  // Massa 4
             write_change_page(6);
-        } else if (component_id == 1) {  // Palha Lenha
+        } else if (component_id == 1) {          // Palha Lenha
             if (storage_get_queimador_mode()) {  // Se tiver na lenha
                 common_send_state_msg(STA_MSG_CHANGE_QUEIMADOR_MODE, (void *)false, portMAX_DELAY);
             } else {  // Se tiver na palha
@@ -110,6 +137,11 @@ static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
         if (component_id == 7) {  // Cancelar
             write_change_page(1);
         } else if (component_id == 8) {  // Aplicar
+            size_t buffer_size = 0;
+            uint8_t data[128];
+
+            write_to_ihm("get t0.txt");
+            write_to_ihm("get t1.txt");
         }
     } else if (page_id == 4) {  // Pagina Limit M2
 
@@ -158,6 +190,80 @@ static void dispatch_page_loaded(uint8_t page_id) {
 
             write_queimador_mode(queimador_mode);
         } break;
+
+        case 2: {  // Pagina Limit Entr
+            uint8_t limit_min = storage_get_min_entr();
+            uint8_t limit_max = storage_get_max_entr();
+
+            write_text_temperature(0, limit_min);
+            write_text_temperature(1, limit_max);
+        } break;
+
+        case 3: {  // Pagina Limit M1
+            uint8_t limit_min = storage_get_min_m1();
+            uint8_t limit_max = storage_get_max_m1();
+
+            write_text_temperature(0, limit_min);
+            write_text_temperature(1, limit_max);
+        } break;
+
+        case 4: {  // Pagina Limit M2
+            uint8_t limit_min = storage_get_min_m2();
+            uint8_t limit_max = storage_get_max_m2();
+
+            write_text_temperature(0, limit_min);
+            write_text_temperature(1, limit_max);
+        } break;
+
+        case 5: {  // Pagina Limit M3
+            uint8_t limit_min = storage_get_min_m3();
+            uint8_t limit_max = storage_get_max_m3();
+
+            write_text_temperature(0, limit_min);
+            write_text_temperature(1, limit_max);
+        } break;
+
+        case 6: {  // Pagina Limit M4
+            uint8_t limit_min = storage_get_min_m4();
+            uint8_t limit_max = storage_get_max_m4();
+
+            write_text_temperature(0, limit_min);
+            write_text_temperature(1, limit_max);
+        } break;
+    }
+}
+
+static void dispatch_get_response(uint8_t *buf, size_t length) {
+    if (ihm_state.curr_page == 3) {
+        ESP_LOGE(TAG, "OPAOPA");
+        if (limit_page_details.limit_min == -1) {
+            limit_page_details.limit_min = extract_number_from_get(buf, length);
+            ESP_LOGE(TAG, "OPAOPA2");
+            ESP_LOGE(TAG, "LIMIT MIN: %d", limit_page_details.limit_min);
+        } else if (limit_page_details.limit_max == -1) {
+            limit_page_details.limit_max = extract_number_from_get(buf, length);
+
+            ESP_LOGE(TAG, "OPAOPA3");
+            ESP_LOGE(TAG, "LIMIT MAX: %d", limit_page_details.limit_max);
+        }
+    }
+}
+
+static void process_command(uint8_t *data, size_t len) {
+    uint8_t data_head = data[0];
+    uint8_t data_page_id = data[1];
+
+    for (int i = 0; i < len; i++) {
+        ESP_LOGI(TAG, "[%d]: %d", i, data[i]);
+    }
+
+    if (data_head == 101) {
+        uint8_t data_component_id = data[2];
+        dispatch_button_released(data_page_id, data_component_id);
+    } else if (data_head == 102) {
+        dispatch_page_loaded(data_page_id);
+    } else if (data_head == 112) {
+        dispatch_get_response(data, len);
     }
 }
 
@@ -177,14 +283,25 @@ static void process_input(uart_event_t *uart_event) {
         ESP_LOGI(TAG, "[%d]: %d", i, data[i]);
     }
 
-    uint8_t data_head = data[0];
-    uint8_t data_page_id = data[1];
+    size_t index = 0;
+    size_t command_end = 0;
+    ESP_LOGE(TAG, "Buffer size: %d", buffer_size);
+    while (index < buffer_size) {
+        for (size_t i = index; i < buffer_size; i++) {
+            if (data[i] == 255) {
+                command_end = i + 2;
+                ESP_LOGE(TAG, "Command end: %d", command_end);
+                break;
+            }
+        }
 
-    if (data_head == 101) {
-        uint8_t data_component_id = data[2];
-        dispatch_button_released(data_page_id, data_component_id);
-    } else if (data_head == 102) {
-        dispatch_page_loaded(data_page_id);
+        size_t new_buffer_size = command_end - index + 1;
+        ESP_LOGE(TAG, "New index: %d / buffer_size: %d", index, new_buffer_size);
+        uint8_t new_data[64];
+        memcpy(new_data, data[index], (new_buffer_size * (sizeof new_data[0])));
+
+        process_command(new_data, new_buffer_size);
+        index = command_end + 1;
     }
 }
 
@@ -192,7 +309,7 @@ static void process_update(IHMMessage_t *update_event) {
     switch (update_event->type) {
         case IHM_MSG_CHANGE_QUEIMADOR_MODE:
             if (ihm_state.curr_page == 1) {
-                ESP_LOGE(TAG, "Payload: %d", (int) update_event->payload);
+                ESP_LOGE(TAG, "Payload: %d", (int)update_event->payload);
                 write_queimador_mode(update_event->payload);
             }
             break;

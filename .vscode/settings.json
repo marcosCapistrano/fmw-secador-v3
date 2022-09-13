@@ -27,7 +27,8 @@
         "freertos.h": "c",
         "*.tcc": "c",
         "fstream": "c",
-        "*.ipp": "c"
+        "*.ipp": "c",
+        "string": "c"
     },
     "taskExplorer.enableMake": false,
     "search.exclude": {
