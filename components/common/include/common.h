@@ -8,6 +8,7 @@
 #include "freertos/FreeRTOS.h"
 
 typedef enum {
+    IHM_MSG_CHANGE_SENSOR_ENTR,
     IHM_MSG_CHANGE_QUEIMADOR_MODE, 
     IHM_MSG_CHANGE_ENTR_LIMITS, 
     IHM_MSG_CHANGE_M1_LIMITS, 

@@ -69,6 +69,13 @@ static void write_text_temperature(int tNumber, int value) {
     write_to_ihm(temp_buf);
 }
 
+static void write_number_temperature(int tNumber, int value) {
+    char temp_buf[25] = {0};
+
+    nex_number_change_temp(temp_buf, tNumber, value);
+    write_to_ihm(temp_buf);
+}
+
 static void write_pic_id(int pNumber, int value) {
     char temp_buf[25] = {0};
 
@@ -104,21 +111,7 @@ static void write_queimador_mode(bool mode) {
 }
 
 static int extract_number_from_get(uint8_t *buf, int start, int end) {
-    size_t length = end - start;
-
-    for (int i = start + 1; i < end; i++) {
-        if (buf[i] == 255) {
-            char numBuf[3] = {0};
-            int addressOffset = (i - 2) - (start);
-
-            memcpy(numBuf, &buf[start + 1], addressOffset - 1);
-
-            int num = atoi(numBuf);
-            return num;
-        }
-    }
-
-    return -1;
+    return buf[start+1];
 }
 
 static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
@@ -141,37 +134,46 @@ static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
             }
         }
     } else if (page_id == 2) {    // Pagina Limit Entr
-        if (component_id == 7) {  // Cancelar
+        if (component_id == 5) {  // Cancelar
             write_change_page(1);
-        } else if (component_id == 8) {  // Aplicar
+        } else if (component_id == 6) {  // Aplicar
+            limit_page_details.type = ENTR;
+            write_to_ihm("get n0.val");
+            write_to_ihm("get n1.val");
         }
     } else if (page_id == 3) {    // Pagina Limit M1
-        if (component_id == 7) {  // Cancelar
+        if (component_id == 5) {  // Cancelar
             write_change_page(1);
-        } else if (component_id == 8) {  // Aplicar
-            size_t buffer_size = 0;
-            uint8_t data[128];
-
+        } else if (component_id == 6) {  // Aplicar
             limit_page_details.type = M1;
-            write_to_ihm("get t0.txt");
-            write_to_ihm("get t1.txt");
+            write_to_ihm("get n0.val");
+            write_to_ihm("get n1.val");
         }
     } else if (page_id == 4) {  // Pagina Limit M2
 
-        if (component_id == 7) {  // Cancelar
+        if (component_id == 5) {  // Cancelar
             write_change_page(1);
-        } else if (component_id == 8) {  // Aplicar
+        } else if (component_id == 6) {  // Aplicar
+            limit_page_details.type = M2;
+            write_to_ihm("get n0.val");
+            write_to_ihm("get n1.val");
         }
     } else if (page_id == 5) {  // Pagina Limit M3
 
-        if (component_id == 7) {  // Cancelar
+        if (component_id == 5) {  // Cancelar
             write_change_page(1);
-        } else if (component_id == 8) {  // Aplicar
+        } else if (component_id == 6) {  // Aplicar
+            limit_page_details.type = M3;
+            write_to_ihm("get n0.val");
+            write_to_ihm("get n1.val");
         }
     } else if (page_id == 6) {    // Pagina Limit M4
-        if (component_id == 7) {  // Cancelar
+        if (component_id == 5) {  // Cancelar
             write_change_page(1);
-        } else if (component_id == 8) {  // Aplicar
+        } else if (component_id == 6) {  // Aplicar
+            limit_page_details.type = M4;
+            write_to_ihm("get n0.val");
+            write_to_ihm("get n1.val");
         }
     }
 }
@@ -208,40 +210,40 @@ static void dispatch_page_loaded(uint8_t page_id) {
             uint8_t limit_min = storage_get_min_entr();
             uint8_t limit_max = storage_get_max_entr();
 
-            write_text_temperature(0, limit_min);
-            write_text_temperature(1, limit_max);
+            write_number_temperature(0, limit_min);
+            write_number_temperature(1, limit_max);
         } break;
 
         case 3: {  // Pagina Limit M1
             uint8_t limit_min = storage_get_min_m1();
             uint8_t limit_max = storage_get_max_m1();
 
-            write_text_temperature(0, limit_min);
-            write_text_temperature(1, limit_max);
+            write_number_temperature(0, limit_min);
+            write_number_temperature(1, limit_max);
         } break;
 
         case 4: {  // Pagina Limit M2
             uint8_t limit_min = storage_get_min_m2();
             uint8_t limit_max = storage_get_max_m2();
 
-            write_text_temperature(0, limit_min);
-            write_text_temperature(1, limit_max);
+            write_number_temperature(0, limit_min);
+            write_number_temperature(1, limit_max);
         } break;
 
         case 5: {  // Pagina Limit M3
             uint8_t limit_min = storage_get_min_m3();
             uint8_t limit_max = storage_get_max_m3();
 
-            write_text_temperature(0, limit_min);
-            write_text_temperature(1, limit_max);
+            write_number_temperature(0, limit_min);
+            write_number_temperature(1, limit_max);
         } break;
 
         case 6: {  // Pagina Limit M4
             uint8_t limit_min = storage_get_min_m4();
             uint8_t limit_max = storage_get_max_m4();
 
-            write_text_temperature(0, limit_min);
-            write_text_temperature(1, limit_max);
+            write_number_temperature(0, limit_min);
+            write_number_temperature(1, limit_max);
         } break;
     }
 }
@@ -257,22 +259,27 @@ static void send_limits_changed() {
         case ENTR: {
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_ENTR_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_ENTR_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
+            ESP_LOGE(TAG, "Setting ENTR LIMITS %d - %d", limit_page_details.limit_min, limit_page_details.limit_max);
         } break;
         case M1: {
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M1_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M1_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
+            ESP_LOGE(TAG, "Setting M1 LIMITS %d - %d", limit_page_details.limit_min, limit_page_details.limit_max);
         } break;
         case M2: {
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M2_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M2_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
+            ESP_LOGE(TAG, "Setting M2 LIMITS %d - %d", limit_page_details.limit_min, limit_page_details.limit_max);
         } break;
         case M3: {
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M3_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M3_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
+            ESP_LOGE(TAG, "Setting M3 LIMITS %d - %d", limit_page_details.limit_min, limit_page_details.limit_max);
         } break;
         case M4: {
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M4_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M4_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
+            ESP_LOGE(TAG, "Setting M4 LIMITS %d - %d", limit_page_details.limit_min, limit_page_details.limit_max);
         } break;
 
         default:
@@ -280,10 +287,8 @@ static void send_limits_changed() {
     }
 }
 
-static void dispatch_get_response(uint8_t *buf, int start, int end) {
-    size_t length = end - start + 1;
-
-    if (ihm_state.curr_page == 3) {
+static void dispatch_get_number_response(uint8_t *buf, int start, int end) {
+    if (ihm_state.curr_page == 2 || ihm_state.curr_page == 3 || ihm_state.curr_page == 4 || ihm_state.curr_page == 5 || ihm_state.curr_page == 6) {
         if (limit_page_details.limit_min == -1) {
             limit_page_details.limit_min = extract_number_from_get(buf, start, end);
         } else if (limit_page_details.limit_max == -1) {
@@ -292,16 +297,14 @@ static void dispatch_get_response(uint8_t *buf, int start, int end) {
             send_limits_changed();
             reset_temp_limits();
         }
+    } else {
+        ESP_LOGE(TAG, "OPA BAD");
     }
 }
 
 static void process_command(uint8_t *data, int start, int end) {
     size_t length = end - start + 1;
     uint8_t data_head = data[start];
-
-    for (int i = start; i < end; i++) {
-        ESP_LOGI(TAG, "[%d]: %d", i, data[i]);
-    }
 
     if (data_head == 101) {
         uint8_t data_page_id = data[start + 1];
@@ -310,8 +313,8 @@ static void process_command(uint8_t *data, int start, int end) {
     } else if (data_head == 102) {
         uint8_t data_page_id = data[start + 1];
         dispatch_page_loaded(data_page_id);
-    } else if (data_head == 112) {
-        dispatch_get_response(data, start, end);
+    } else if (data_head == 113) {
+        dispatch_get_number_response(data, start, end);
     }
 }
 
@@ -327,7 +330,6 @@ static void process_input(uart_event_t *uart_event) {
     }
 
     uart_read_bytes(UART_NUM, data, buffer_size, portMAX_DELAY);
-    ESP_LOGI(TAG, "Buffer size: %d", buffer_size);
 
     int command_start = 0;
     int command_end = 0;
@@ -339,7 +341,6 @@ static void process_input(uart_event_t *uart_event) {
             }
         }
 
-        ESP_LOGI(TAG, "command_start: %d, command_end: %d", command_start, command_end);
         process_command(data, command_start, command_end);
         command_start = command_end + 1;
     }
@@ -349,10 +350,15 @@ static void process_update(IHMMessage_t *update_event) {
     switch (update_event->type) {
         case IHM_MSG_CHANGE_QUEIMADOR_MODE:
             if (ihm_state.curr_page == 1) {
-                ESP_LOGE(TAG, "Payload: %d", (int)update_event->payload);
                 write_queimador_mode(update_event->payload);
             }
             break;
+        
+        case IHM_MSG_CHANGE_SENSOR_ENTR:
+            if(ihm_state.curr_page == 1) {
+                write_text_temperature(0, update_event->payload);
+            }
+        break;
 
         case IHM_MSG_CHANGE_ENTR_LIMITS:
         case IHM_MSG_CHANGE_M1_LIMITS:

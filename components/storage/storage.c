@@ -205,7 +205,7 @@ uint8_t storage_get_sensor_entr() {
 }
 void storage_set_sensor_entr(uint8_t new_value) {
     if (sensor_entr != new_value) {
-        set_bool(SENSOR_ENTR_KEY, new_value);
+        set_u8(SENSOR_ENTR_KEY, new_value);
         sensor_entr = new_value;
     }
 }
@@ -215,7 +215,7 @@ uint8_t storage_get_sensor_m1() {
 }
 void storage_set_sensor_m1(uint8_t new_value) {
     if (sensor_m1 != new_value) {
-        set_bool(SENSOR_M1_KEY, new_value);
+        set_u8(SENSOR_M1_KEY, new_value);
         sensor_m1 = new_value;
     }
 }
@@ -225,7 +225,7 @@ uint8_t storage_get_sensor_m2() {
 }
 void storage_set_sensor_m2(uint8_t new_value) {
     if (sensor_m2 != new_value) {
-        set_bool(SENSOR_M2_KEY, new_value);
+        set_u8(SENSOR_M2_KEY, new_value);
         sensor_m2 = new_value;
     }
 }
@@ -235,7 +235,7 @@ uint8_t storage_get_sensor_m3() {
 }
 void storage_set_sensor_m3(uint8_t new_value) {
     if (sensor_m3 != new_value) {
-        set_bool(SENSOR_M3_KEY, new_value);
+        set_u8(SENSOR_M3_KEY, new_value);
         sensor_m3 = new_value;
     }
 }
@@ -245,7 +245,7 @@ uint8_t storage_get_sensor_m4() {
 }
 void storage_set_sensor_m4(uint8_t new_value) {
     if (sensor_m4 != new_value) {
-        set_bool(SENSOR_M4_KEY, new_value);
+        set_u8(SENSOR_M4_KEY, new_value);
         sensor_m4 = new_value;
     }
 }
@@ -305,7 +305,7 @@ uint8_t storage_get_min_entr() {
 }
 void storage_set_min_entr(uint8_t new_value) {
     if (limit_min_entr != new_value) {
-        set_bool(ENTR_MIN_KEY, new_value);
+        set_u8(ENTR_MIN_KEY, new_value);
         limit_min_entr = new_value;
     }
 }
@@ -315,7 +315,7 @@ uint8_t storage_get_max_entr() {
 }
 void storage_set_max_entr(uint8_t new_value) {
     if (limit_max_entr != new_value) {
-        set_bool(ENTR_MAX_KEY, new_value);
+        set_u8(ENTR_MAX_KEY, new_value);
         limit_max_entr = new_value;
     }
 }
@@ -325,7 +325,7 @@ uint8_t storage_get_min_m1() {
 }
 void storage_set_min_m1(uint8_t new_value) {
     if (limit_min_m1 != new_value) {
-        set_bool(M1_MIN_KEY, new_value);
+        set_u8(M1_MIN_KEY, new_value);
         limit_min_m1 = new_value;
     }
 }
@@ -335,7 +335,7 @@ uint8_t storage_get_max_m1() {
 }
 void storage_set_max_m1(uint8_t new_value) {
     if (limit_max_m1 != new_value) {
-        set_bool(M1_MAX_KEY, new_value);
+        set_u8(M1_MAX_KEY, new_value);
         limit_max_m1 = new_value;
     }
 }
@@ -345,7 +345,7 @@ uint8_t storage_get_min_m2() {
 }
 void storage_set_min_m2(uint8_t new_value) {
     if (limit_min_m2 != new_value) {
-        set_bool(M2_MIN_KEY, new_value);
+        set_u8(M2_MIN_KEY, new_value);
         limit_min_m2 = new_value;
     }
 }
@@ -355,7 +355,7 @@ uint8_t storage_get_max_m2() {
 }
 void storage_set_max_m2(uint8_t new_value) {
     if (limit_max_m2 != new_value) {
-        set_bool(M2_MAX_KEY, new_value);
+        set_u8(M2_MAX_KEY, new_value);
         limit_max_m2 = new_value;
     }
 }
@@ -365,7 +365,7 @@ uint8_t storage_get_min_m3() {
 }
 void storage_set_min_m3(uint8_t new_value) {
     if (limit_min_m3 != new_value) {
-        set_bool(M3_MIN_KEY, new_value);
+        set_u8(M3_MIN_KEY, new_value);
         limit_min_m3 = new_value;
     }
 }
@@ -375,7 +375,7 @@ uint8_t storage_get_max_m3() {
 }
 void storage_set_max_m3(uint8_t new_value) {
     if (limit_max_m3 != new_value) {
-        set_bool(M3_MAX_KEY, new_value);
+        set_u8(M3_MAX_KEY, new_value);
         limit_max_m3 = new_value;
     }
 }
@@ -385,7 +385,7 @@ uint8_t storage_get_min_m4() {
 }
 void storage_set_min_m4(uint8_t new_value) {
     if (limit_min_m4 != new_value) {
-        set_bool(M4_MIN_KEY, new_value);
+        set_u8(M4_MIN_KEY, new_value);
         limit_min_m4 = new_value;
     }
 }
@@ -395,7 +395,7 @@ uint8_t storage_get_max_m4() {
 }
 void storage_set_max_m4(uint8_t new_value) {
     if (limit_max_m4 != new_value) {
-        set_bool(M4_MAX_KEY, new_value);
+        set_u8(M4_MAX_KEY, new_value);
         limit_max_m4 = new_value;
     }
 }
@@ -473,6 +473,9 @@ static void initialize_cache() {
     limit_max_m3 = get_u8(M3_MAX_KEY, 100);
     limit_min_m4 = get_u8(M4_MIN_KEY, 0);
     limit_max_m4 = get_u8(M4_MAX_KEY, 100);
+
+    ESP_LOGE(TAG, "Limits M1 %d - %d", limit_min_m1, limit_max_m1);
+    ESP_LOGE(TAG, "Limits M2 %d - %d", limit_min_m2, limit_max_m2);
 
     conexao_m1 = get_bool(CONEXAO_M1_KEY, false);
     conexao_m2 = get_bool(CONEXAO_M2_KEY, false);

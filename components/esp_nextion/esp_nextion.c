@@ -9,6 +9,11 @@ void nex_text_change_temp(char *buf, int tNumber, uint8_t value)
     sprintf(buf, "t%d.txt=\"%u%sC\"", tNumber, value, "\xb0");
 }
 
+void nex_number_change_temp(char *buf, int nNumber, uint8_t value)
+{
+    sprintf(buf, "n%d.val=%u", nNumber, value);
+}
+
 void nex_pic_change_pic_id(char *buf, int pNumber, uint8_t value)
 {
     sprintf(buf, "p%d.pic=%d", pNumber, value);
