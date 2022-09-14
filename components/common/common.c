@@ -16,3 +16,12 @@ void common_send_state_msg(StateMessageType_t type, void *payload, portTickType 
 
     xQueueSend(state_msg_q, (void *)&state_msg, ticks_to_wait);
 }
+
+void common_send_ihm_msg(IHMMessageType_t type, void *payload, portTickType ticks_to_wait) {
+    IHMMessage_t ihm_msg = {
+        .type = type,
+        .payload = payload,
+    };
+
+    xQueueSend(ihm_msg_q, (void *)&ihm_msg, ticks_to_wait);
+}

@@ -33,12 +33,23 @@ extern QueueHandle_t state_msg_q;
 
 static const char *TAG = "IHM_MANAGER";
 
+typedef enum {
+    LIMIT_NONE,
+    ENTR,
+    M1,
+    M2,
+    M3,
+    M4
+} LimitType_t;
+
 typedef struct {
-    uint8_t limit_min;
-    uint8_t limit_max;
+    LimitType_t type;
+    int limit_min;
+    int limit_max;
 } LimitPageDetails_t;
 
 static LimitPageDetails_t limit_page_details = {
+    .type = LIMIT_NONE,
     .limit_min = -1,
     .limit_max = -1,
 };
@@ -92,15 +103,16 @@ static void write_queimador_mode(bool mode) {
     }
 }
 
-static int extract_number_from_get(uint8_t *buf, size_t length) {
-    int start_index = 1;
+static int extract_number_from_get(uint8_t *buf, int start, int end) {
+    size_t length = end - start;
 
-    for (int i = 0; i < length; i++) {
+    for (int i = start + 1; i < end; i++) {
         if (buf[i] == 255) {
-            int numBuf[3];
-            int addressOffset = i - start_index;
+            char numBuf[3] = {0};
+            int addressOffset = (i - 2) - (start);
 
-            memcpy(numBuf, &buf[start_index], addressOffset * sizeof(*buf));
+            memcpy(numBuf, &buf[start + 1], addressOffset - 1);
+
             int num = atoi(numBuf);
             return num;
         }
@@ -140,6 +152,7 @@ static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
             size_t buffer_size = 0;
             uint8_t data[128];
 
+            limit_page_details.type = M1;
             write_to_ihm("get t0.txt");
             write_to_ihm("get t1.txt");
         }
@@ -233,37 +246,72 @@ static void dispatch_page_loaded(uint8_t page_id) {
     }
 }
 
-static void dispatch_get_response(uint8_t *buf, size_t length) {
-    if (ihm_state.curr_page == 3) {
-        ESP_LOGE(TAG, "OPAOPA");
-        if (limit_page_details.limit_min == -1) {
-            limit_page_details.limit_min = extract_number_from_get(buf, length);
-            ESP_LOGE(TAG, "OPAOPA2");
-            ESP_LOGE(TAG, "LIMIT MIN: %d", limit_page_details.limit_min);
-        } else if (limit_page_details.limit_max == -1) {
-            limit_page_details.limit_max = extract_number_from_get(buf, length);
+static void reset_temp_limits() {
+    limit_page_details.type = LIMIT_NONE;
+    limit_page_details.limit_min = -1;
+    limit_page_details.limit_max = -1;
+}
 
-            ESP_LOGE(TAG, "OPAOPA3");
-            ESP_LOGE(TAG, "LIMIT MAX: %d", limit_page_details.limit_max);
+static void send_limits_changed() {
+    switch (limit_page_details.type) {
+        case ENTR: {
+            common_send_state_msg(STA_MSG_CHANGE_LIMIT_ENTR_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
+            common_send_state_msg(STA_MSG_CHANGE_LIMIT_ENTR_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
+        } break;
+        case M1: {
+            common_send_state_msg(STA_MSG_CHANGE_LIMIT_M1_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
+            common_send_state_msg(STA_MSG_CHANGE_LIMIT_M1_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
+        } break;
+        case M2: {
+            common_send_state_msg(STA_MSG_CHANGE_LIMIT_M2_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
+            common_send_state_msg(STA_MSG_CHANGE_LIMIT_M2_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
+        } break;
+        case M3: {
+            common_send_state_msg(STA_MSG_CHANGE_LIMIT_M3_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
+            common_send_state_msg(STA_MSG_CHANGE_LIMIT_M3_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
+        } break;
+        case M4: {
+            common_send_state_msg(STA_MSG_CHANGE_LIMIT_M4_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
+            common_send_state_msg(STA_MSG_CHANGE_LIMIT_M4_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
+        } break;
+
+        default:
+            ESP_LOGE(TAG, "Error sending Limit changes to StateManager, no type set on LimitPageDetails");
+    }
+}
+
+static void dispatch_get_response(uint8_t *buf, int start, int end) {
+    size_t length = end - start + 1;
+
+    if (ihm_state.curr_page == 3) {
+        if (limit_page_details.limit_min == -1) {
+            limit_page_details.limit_min = extract_number_from_get(buf, start, end);
+        } else if (limit_page_details.limit_max == -1) {
+            limit_page_details.limit_max = extract_number_from_get(buf, start, end);
+
+            send_limits_changed();
+            reset_temp_limits();
         }
     }
 }
 
-static void process_command(uint8_t *data, size_t len) {
-    uint8_t data_head = data[0];
-    uint8_t data_page_id = data[1];
+static void process_command(uint8_t *data, int start, int end) {
+    size_t length = end - start + 1;
+    uint8_t data_head = data[start];
 
-    for (int i = 0; i < len; i++) {
+    for (int i = start; i < end; i++) {
         ESP_LOGI(TAG, "[%d]: %d", i, data[i]);
     }
 
     if (data_head == 101) {
-        uint8_t data_component_id = data[2];
+        uint8_t data_page_id = data[start + 1];
+        uint8_t data_component_id = data[start + 2];
         dispatch_button_released(data_page_id, data_component_id);
     } else if (data_head == 102) {
+        uint8_t data_page_id = data[start + 1];
         dispatch_page_loaded(data_page_id);
     } else if (data_head == 112) {
-        dispatch_get_response(data, len);
+        dispatch_get_response(data, start, end);
     }
 }
 
@@ -279,29 +327,21 @@ static void process_input(uart_event_t *uart_event) {
     }
 
     uart_read_bytes(UART_NUM, data, buffer_size, portMAX_DELAY);
-    for (int i = 0; i < buffer_size; i++) {
-        ESP_LOGI(TAG, "[%d]: %d", i, data[i]);
-    }
+    ESP_LOGI(TAG, "Buffer size: %d", buffer_size);
 
-    size_t index = 0;
-    size_t command_end = 0;
-    ESP_LOGE(TAG, "Buffer size: %d", buffer_size);
-    while (index < buffer_size) {
-        for (size_t i = index; i < buffer_size; i++) {
+    int command_start = 0;
+    int command_end = 0;
+    while (command_start < buffer_size) {
+        for (int i = command_start; i < buffer_size; i++) {
             if (data[i] == 255) {
                 command_end = i + 2;
-                ESP_LOGE(TAG, "Command end: %d", command_end);
                 break;
             }
         }
 
-        size_t new_buffer_size = command_end - index + 1;
-        ESP_LOGE(TAG, "New index: %d / buffer_size: %d", index, new_buffer_size);
-        uint8_t new_data[64];
-        memcpy(new_data, data[index], (new_buffer_size * (sizeof new_data[0])));
-
-        process_command(new_data, new_buffer_size);
-        index = command_end + 1;
+        ESP_LOGI(TAG, "command_start: %d, command_end: %d", command_start, command_end);
+        process_command(data, command_start, command_end);
+        command_start = command_end + 1;
     }
 }
 
@@ -313,6 +353,15 @@ static void process_update(IHMMessage_t *update_event) {
                 write_queimador_mode(update_event->payload);
             }
             break;
+
+        case IHM_MSG_CHANGE_ENTR_LIMITS:
+        case IHM_MSG_CHANGE_M1_LIMITS:
+        case IHM_MSG_CHANGE_M2_LIMITS:
+        case IHM_MSG_CHANGE_M3_LIMITS:
+        case IHM_MSG_CHANGE_M4_LIMITS:
+            write_change_page(1);
+        break;
+
     }
 }
 
