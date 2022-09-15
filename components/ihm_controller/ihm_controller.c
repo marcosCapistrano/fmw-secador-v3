@@ -111,7 +111,7 @@ static void write_queimador_mode(bool mode) {
 }
 
 static int extract_number_from_get(uint8_t *buf, int start, int end) {
-    return buf[start+1];
+    return buf[start + 1];
 }
 
 static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
@@ -198,10 +198,30 @@ static void dispatch_page_loaded(uint8_t page_id) {
             bool queimador_mode = storage_get_queimador_mode();
 
             write_text_temperature(0, sensor_entr);
-            write_text_temperature(1, sensor_m1);
-            write_text_temperature(2, sensor_m2);
-            write_text_temperature(3, sensor_m3);
-            write_text_temperature(4, sensor_m4);
+
+            if (m1_connected) {
+                write_text_temperature(1, sensor_m1);
+            } else {
+                write_text_temperature(1, -1);
+            }
+
+            if (m2_connected)
+                write_text_temperature(2, sensor_m2);
+            else {
+                write_text_temperature(1, -1);
+            }
+
+            if (m3_connected)
+                write_text_temperature(3, sensor_m3);
+            else {
+                write_text_temperature(1, -1);
+            }
+
+            if (m4_connected)
+                write_text_temperature(4, sensor_m4);
+            else {
+                write_text_temperature(1, -1);
+            }
 
             write_queimador_mode(queimador_mode);
         } break;
@@ -353,12 +373,36 @@ static void process_update(IHMMessage_t *update_event) {
                 write_queimador_mode(update_event->payload);
             }
             break;
-        
+
         case IHM_MSG_CHANGE_SENSOR_ENTR:
-            if(ihm_state.curr_page == 1) {
+            if (ihm_state.curr_page == 1) {
                 write_text_temperature(0, update_event->payload);
             }
-        break;
+            break;
+
+        case IHM_MSG_CHANGE_SENSOR_M1:
+            if (ihm_state.curr_page == 1) {
+                write_text_temperature(1, update_event->payload);
+            }
+            break;
+
+        case IHM_MSG_CHANGE_SENSOR_M2:
+            if (ihm_state.curr_page == 1) {
+                write_text_temperature(2, update_event->payload);
+            }
+            break;
+
+        case IHM_MSG_CHANGE_SENSOR_M3:
+            if (ihm_state.curr_page == 1) {
+                write_text_temperature(3, update_event->payload);
+            }
+            break;
+
+        case IHM_MSG_CHANGE_SENSOR_M4:
+            if (ihm_state.curr_page == 1) {
+                write_text_temperature(4, update_event->payload);
+            }
+            break;
 
         case IHM_MSG_CHANGE_ENTR_LIMITS:
         case IHM_MSG_CHANGE_M1_LIMITS:
@@ -366,8 +410,22 @@ static void process_update(IHMMessage_t *update_event) {
         case IHM_MSG_CHANGE_M3_LIMITS:
         case IHM_MSG_CHANGE_M4_LIMITS:
             write_change_page(1);
-        break;
+            break;
 
+        case IHM_MSG_CHANGE_CONNECT: {
+            int sensor_id = update_event->payload;
+            if (ihm_state.curr_page == 1) {
+                write_pic_id(sensor_id, 32);
+            }
+        } break;
+
+        case IHM_MSG_CHANGE_DISCONNECT: {
+            if (ihm_state.curr_page == 1) {
+                int sensor_id = update_event->payload;
+                write_pic_id(sensor_id, 31);
+                write_text_temperature(sensor_id, -1);
+            }
+        } break;
     }
 }
 

@@ -8,6 +8,9 @@
 #include "esp_log.h"
 #include "esp_vfs.h"
 #include "esp_wifi.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/timers.h"
+#include "common.h"
 
 #define WIFI_AP_SSID "AusyxSolucoes"
 #define WIFI_AP_PASS "12345678"
@@ -27,10 +30,73 @@ static rest_server_context_t rest_context = {
     .base_path = "/website",
     .scratch = {0}};
 
+typedef struct {
+    int m1_sock_fd;
+    int m2_sock_fd;
+    int m3_sock_fd;
+    int m4_sock_fd;
+} RemoteSensors_t;
+
+static RemoteSensors_t sensors = {-1, -1, -1, -1};
+
 extern QueueHandle_t server_update_q;
 extern QueueHandle_t state_manager_q;
 
+static TimerHandle_t m1_timer;
+static TimerHandle_t m2_timer;
+static TimerHandle_t m3_timer;
+static TimerHandle_t m4_timer;
+
 #define CHECK_FILE_EXTENSION(filename, ext) (strcasecmp(&filename[strlen(filename) - strlen(ext)], ext) == 0)
+
+static void connect_sensor(int sensor_id, int temperature, int sock_fd) {
+    if (sensor_id == 1) {
+        if (sensors.m1_sock_fd == -1) {
+            common_send_ihm_msg(IHM_MSG_CHANGE_CONNECT, (void*)1, portMAX_DELAY);
+        }
+
+        sensors.m1_sock_fd = sock_fd;
+        xTimerReset(m1_timer, portMAX_DELAY);
+        common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_M1, (void *)temperature, portMAX_DELAY);
+    } else if (sensor_id == 2) {
+        if (sensors.m2_sock_fd == -1) {
+            common_send_ihm_msg(IHM_MSG_CHANGE_CONNECT, (void*)2, portMAX_DELAY);
+        }
+        sensors.m2_sock_fd = sock_fd;
+        xTimerReset(m2_timer, portMAX_DELAY);
+        common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_M2, (void *)temperature, portMAX_DELAY);
+    } else if (sensor_id == 3) {
+        if (sensors.m3_sock_fd == -1) {
+            common_send_ihm_msg(IHM_MSG_CHANGE_CONNECT, (void*)3, portMAX_DELAY);
+        }
+        sensors.m3_sock_fd = sock_fd;
+        xTimerReset(m3_timer, portMAX_DELAY);
+        common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_M3, (void *)temperature, portMAX_DELAY);
+    } else if (sensor_id == 4) {
+        if (sensors.m4_sock_fd == -1) {
+            common_send_ihm_msg(IHM_MSG_CHANGE_CONNECT, (void*)4, portMAX_DELAY);
+        }
+        sensors.m4_sock_fd = sock_fd;
+        xTimerReset(m4_timer, portMAX_DELAY);
+        common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_M4, (void *)temperature, portMAX_DELAY);
+    }
+}
+
+static void disconnect_sensor(TimerHandle_t timer) {
+    int sensor_id = (int)pvTimerGetTimerID(timer);
+
+    if (sensor_id == 1) {
+        sensors.m1_sock_fd = -1;
+    } else if (sensor_id == 2) {
+        sensors.m2_sock_fd = -1;
+    } else if (sensor_id == 3) {
+        sensors.m3_sock_fd = -1;
+    } else if (sensor_id == 4) {
+        sensors.m4_sock_fd = -1;
+    }
+
+    common_send_ihm_msg(IHM_MSG_CHANGE_DISCONNECT, (void*)sensor_id, portMAX_DELAY);
+}
 
 static esp_err_t set_content_type_from_file(httpd_req_t* req, const char* filepath) {
     const char* type = "text/plain";
@@ -57,7 +123,7 @@ static esp_err_t on_ws_handler(httpd_req_t* req) {
     }
 
     httpd_ws_frame_t ws_pkt;
-    uint8_t* buf = NULL;
+    char* buf = NULL;
     memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
     ws_pkt.type = HTTPD_WS_TYPE_TEXT;
     /* Set max_len = 0 to get the frame len */
@@ -74,7 +140,7 @@ static esp_err_t on_ws_handler(httpd_req_t* req) {
             ESP_LOGE(TAG, "Failed to calloc memory for buf");
             return ESP_ERR_NO_MEM;
         }
-        ws_pkt.payload = buf;
+        ws_pkt.payload = (uint8_t*)buf;
         /* Set max_len = ws_pkt.len to get the frame payload */
         ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
         if (ret != ESP_OK) {
@@ -82,7 +148,30 @@ static esp_err_t on_ws_handler(httpd_req_t* req) {
             free(buf);
             return ret;
         }
-        ESP_LOGI(TAG, "Got packet with message: %s", ws_pkt.payload);
+
+        ESP_LOGI(TAG, "Got packet with message: %s", buf);
+
+        char* temp_buf = NULL;
+        temp_buf = calloc(1, ws_pkt.len - 2);
+        if (temp_buf == NULL) {
+            ESP_LOGE(TAG, "Failed to calloc memory for temp_buf");
+            return ESP_ERR_NO_MEM;
+        }
+
+        memcpy(temp_buf, &buf[2], (ws_pkt.len - 2) * (sizeof buf[0]));
+
+        int sensor_id = atoi(&buf[0]);
+        int temperature = atoi(temp_buf);
+
+        if (temperature < 0)
+            temperature = 0;
+
+        int sock_fd = httpd_req_to_sockfd(req);
+
+        ESP_LOGI(TAG, "Sensor ID: %d - Temperature: %d", sensor_id, temperature);
+        connect_sensor(sensor_id, temperature, sock_fd);
+
+        free(temp_buf);
     }
 
     // TODO: Use ws payload with ws_pkt.payload
@@ -166,10 +255,34 @@ static httpd_uri_t uri_root = {
     .method = HTTP_GET,
     .handler = on_root_handler};
 
+static httpd_close_func_t on_close_session(httpd_handle_t* handle, int sock_fd) {
+    int sensor_id = -1;
+
+    if(sock_fd == sensors.m1_sock_fd) {
+        sensor_id = 1;
+        sensors.m1_sock_fd = -1;
+    } else if(sock_fd == sensors.m2_sock_fd) {
+        sensor_id = 2;
+        sensors.m2_sock_fd = -1;
+    } else if(sock_fd == sensors.m3_sock_fd) {
+        sensor_id = 3;
+        sensors.m3_sock_fd = -1;
+    } else if(sock_fd == sensors.m4_sock_fd) {
+        sensor_id = 4;
+        sensors.m4_sock_fd = -1;
+    }
+
+    common_send_ihm_msg(IHM_MSG_CHANGE_DISCONNECT, (void *)sensor_id, portMAX_DELAY);
+    close(sock_fd);
+
+    return ESP_OK;
+}
+
 static httpd_handle_t start_webserver(void) {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
+    config.close_fn = on_close_session;
 
     // Start the httpd server
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
@@ -231,6 +344,16 @@ void server_controller_init(void) {
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_LOGI(TAG, "Wi-Fi OK!");
+
+    m1_timer = xTimerCreate("TIMER M1", pdMS_TO_TICKS(15000), pdTRUE, (void*)1, disconnect_sensor);
+    m2_timer = xTimerCreate("TIMER M2", pdMS_TO_TICKS(15000), pdTRUE, (void*)2, disconnect_sensor);
+    m3_timer = xTimerCreate("TIMER M3", pdMS_TO_TICKS(15000), pdTRUE, (void*)3, disconnect_sensor);
+    m4_timer = xTimerCreate("TIMER M4", pdMS_TO_TICKS(15000), pdTRUE, (void*)4, disconnect_sensor);
+
+    xTimerStart(m1_timer, portMAX_DELAY);
+    xTimerStart(m2_timer, portMAX_DELAY);
+    xTimerStart(m3_timer, portMAX_DELAY);
+    xTimerStart(m4_timer, portMAX_DELAY);
 
     ESP_LOGI(TAG, "Iniciando Servidor WEB...");
     server_handle = start_webserver();
