@@ -11,6 +11,16 @@
 extern QueueHandle_t state_msg_q;
 extern QueueHandle_t ihm_msg_q;
 
+typedef enum {
+    STARTING,
+    WAIT_NEW_DRY,
+    WAIT_CONTINUE_DRY,
+    RUNNING,
+    FINISHED,
+} State_t;
+
+static State_t curr_state = STARTING;
+
 static const char *TAG = "STATE_MANAGER";
 
 static void state_manager_task(void *pvParameters) {
@@ -68,12 +78,36 @@ static void state_manager_task(void *pvParameters) {
                     storage_set_max_m4(state_msg.payload);
                     common_send_ihm_msg(IHM_MSG_CHANGE_M4_LIMITS, (void *)NULL, portMAX_DELAY);
                 break;
+
+                case STA_MSG_CONFIRM_CONTINUE:
+                    ESP_LOGE(TAG, "Received Confirm Continue!");
+                    curr_state = RUNNING;
+                break;
+
+                case STA_MSG_CONFIRM_NEW:
+                    ESP_LOGE(TAG, "Received Confirm New!");
+                    storage_new_lote_number();
+                    curr_state = RUNNING;
+                break;
+
+                default:
+                    ESP_LOGE(TAG, "Received Uhnandled Event: %d", state_msg.type);
+                break;
             }
         }
     }
 }
 
 void state_manager_init(void) {
+    //Checar se estamos em new dry ou continue dry
+
+    if(storage_get_lote_concluded()) {
+        common_send_ihm_msg(IHM_MSG_NOTIFY_NEW_DRY, (void *) NULL, portMAX_DELAY);
+        curr_state = WAIT_NEW_DRY;
+    } else {
+        common_send_ihm_msg(IHM_MSG_NOTIFY_CONTINUE_DRY, (void *)NULL, portMAX_DELAY); 
+        curr_state = WAIT_CONTINUE_DRY;
+    }
+
     xTaskCreate(state_manager_task, "STATE_MANAGER_TASK", 2400, NULL, 5, NULL);
-    // Salvar horário de ligamento
 }

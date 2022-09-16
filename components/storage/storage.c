@@ -3,9 +3,9 @@
 #include <stdio.h>
 
 #include "esp_log.h"
+#include "esp_spiffs.h"
 #include "esp_system.h"
 #include "nvs_flash.h"
-#include "esp_spiffs.h"
 
 #define NAMESPACE "config"
 #define LOTE_NUMBER_KEY "lote_number"
@@ -87,8 +87,8 @@ typedef struct {
 static nvs_handle_t my_nvs_handle;
 
 static uint8_t lote_number = 0;
-static bool lote_concluded = true;  // FALSE = Começado, não finalizado, TRUE = Finalizado
-static bool queimador_mode = false; // FALSE = Palha, TRUE = Lenha
+static bool lote_concluded = true;   // FALSE = Começado, não finalizado, TRUE = Finalizado
+static bool queimador_mode = false;  // FALSE = Palha, TRUE = Lenha
 static bool queimador_state = false;
 
 static uint8_t sensor_entr = 0;
@@ -168,6 +168,16 @@ void storage_set_lote_number(uint8_t new_value) {
         set_u8(LOTE_NUMBER_KEY, new_value);
         lote_number = new_value;
     }
+}
+
+uint8_t storage_new_lote_number() {
+    uint8_t new_lote_number = lote_number+1;
+    set_u8(LOTE_NUMBER_KEY, new_lote_number);
+    lote_number = new_lote_number;
+
+    ESP_LOGE(TAG, "Lote number: %d", lote_number);
+
+    return new_lote_number;
 }
 
 bool storage_get_lote_concluded() {
@@ -441,7 +451,6 @@ void storage_set_conexao_m4(bool new_value) {
 }
 
 void storage_get_all_lotes() {
-
 }
 
 static void initialize_cache() {

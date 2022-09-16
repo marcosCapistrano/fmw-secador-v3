@@ -76,6 +76,13 @@ static void write_number_temperature(int tNumber, int value) {
     write_to_ihm(temp_buf);
 }
 
+static void write_text_lote_number(int tNumber, uint8_t new_lote_number) {
+    char temp_buf[25] = {0};
+
+    nex_text_change_lote_number(temp_buf, tNumber, new_lote_number);
+    write_to_ihm(temp_buf);
+}
+
 static void write_pic_id(int pNumber, int value) {
     char temp_buf[25] = {0};
 
@@ -175,6 +182,9 @@ static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
             write_to_ihm("get n0.val");
             write_to_ihm("get n1.val");
         }
+    } else if (page_id == 17) {
+        common_send_state_msg(STA_MSG_CONFIRM_NEW, (void *)NULL, portMAX_DELAY);
+        write_change_page(1);
     }
 }
 
@@ -265,6 +275,13 @@ static void dispatch_page_loaded(uint8_t page_id) {
             write_number_temperature(0, limit_min);
             write_number_temperature(1, limit_max);
         } break;
+
+        case 17: {
+            uint8_t new_lote_number = storage_get_lote_number();
+            new_lote_number++;
+
+            write_text_lote_number(0, new_lote_number);
+        }
     }
 }
 
@@ -322,6 +339,13 @@ static void dispatch_get_number_response(uint8_t *buf, int start, int end) {
     }
 }
 
+static void dispatch_continue_timer_expired() {
+    if (ihm_state.curr_page == 18) {
+        common_send_state_msg(STA_MSG_CONFIRM_CONTINUE, (void *)NULL, portMAX_DELAY);
+        write_change_page(1);
+    }
+}
+
 static void process_command(uint8_t *data, int start, int end) {
     size_t length = end - start + 1;
     uint8_t data_head = data[start];
@@ -335,6 +359,8 @@ static void process_command(uint8_t *data, int start, int end) {
         dispatch_page_loaded(data_page_id);
     } else if (data_head == 113) {
         dispatch_get_number_response(data, start, end);
+    } else {
+        dispatch_continue_timer_expired();
     }
 }
 
@@ -368,6 +394,14 @@ static void process_input(uart_event_t *uart_event) {
 
 static void process_update(IHMMessage_t *update_event) {
     switch (update_event->type) {
+        case IHM_MSG_NOTIFY_NEW_DRY:
+            write_change_page(17);
+            break;
+
+        case IHM_MSG_NOTIFY_CONTINUE_DRY:
+            write_change_page(18);
+            break;
+
         case IHM_MSG_CHANGE_QUEIMADOR_MODE:
             if (ihm_state.curr_page == 1) {
                 write_queimador_mode(update_event->payload);
@@ -466,6 +500,5 @@ void ihm_controller_init(void) {
     xQueueAddToSet(ihm_input_q, ihm_qs);
     xQueueAddToSet(ihm_msg_q, ihm_qs);
 
-    write_change_page(1);
     xTaskCreate(ihm_task, "IHM_INPUT_TASK", 6000, NULL, 3, NULL);
 }

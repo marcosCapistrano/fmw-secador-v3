@@ -41,10 +41,10 @@ void app_main(void)
     ESP_LOGI(TAG, "Queues OK!");
 
     ESP_LOGI(TAG, "Iniciando todos Módulos...");
-    state_manager_init();
     storage_init();
-    perif_controller_init();
     server_controller_init();
+    perif_controller_init();
     ihm_controller_init();
+    state_manager_init();
     ESP_LOGI(TAG, "Modulos OK!");
 }

@@ -6,6 +6,10 @@
 
 #define MAX_BUFFER_SIZE 25
 
+void nex_text_change_lote_number(char *buf, int tNumber, uint8_t value) {
+    sprintf(buf, "t%d.txt=\"Lote %u\"", tNumber, value);
+}
+
 void nex_text_change_temp(char *buf, int tNumber, int value) {
     if (value != -1) {
         sprintf(buf, "t%d.txt=\"%u%sC\"", tNumber, value, "\xb0");
