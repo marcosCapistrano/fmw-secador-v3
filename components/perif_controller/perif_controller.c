@@ -33,6 +33,13 @@ static OneWireBus *owb = 0;
 static DS18B20_Info *ds18b20_info = 0;
 static owb_rmt_driver_info rmt_driver_info;
 
+typedef enum {
+    INACTIVE,
+    ACTIVE
+} PerifControllerState_t;
+
+static PerifControllerState_t curr_state = INACTIVE;
+
 extern QueueHandle_t perif_msg_q;
 
 static void set_queimador(bool on);
@@ -77,7 +84,7 @@ static int sensor_temp_read() {
     float reading = 0;
     DS18B20_ERROR error = ds18b20_read_temp(ds18b20_info, &reading);
 
-    return ((int) reading);
+    return ((int)reading);
 }
 
 static void perif_controller_task(void *pvParameters) {
@@ -85,11 +92,12 @@ static void perif_controller_task(void *pvParameters) {
 
     for (;;) {
         if (xQueueReceive(perif_msg_q, &perif_msg, pdMS_TO_TICKS(10000))) {
-
         }
 
-        int sensor_entr = sensor_temp_read();
-        common_send_state_msg(STA_MSG_CHANGE_SENSOR_ENTR, (void *)sensor_entr, portMAX_DELAY);
+        if (curr_state != INACTIVE) {
+            int sensor_entr = sensor_temp_read();
+            common_send_state_msg(STA_MSG_CHANGE_SENSOR_ENTR, (void *)sensor_entr, portMAX_DELAY);
+        }
     }
 }
 

@@ -23,7 +23,8 @@ typedef enum {
     IHM_MSG_CHANGE_DISCONNECT,
 
     IHM_MSG_NOTIFY_NEW_DRY,
-    IHM_MSG_NOTIFY_CONTINUE_DRY
+    IHM_MSG_NOTIFY_CONTINUE_DRY,
+    IHM_MSG_RUN,
 } IHMMessageType_t;
 
 typedef struct {

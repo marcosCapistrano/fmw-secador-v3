@@ -19,12 +19,20 @@
 #define BUF_SIZE (1024)
 #define RD_BUF_SIZE (BUF_SIZE)
 
+typedef enum {
+    STARTING,
+    RUNNING,
+    FINISHING,
+} State_t;
+
 typedef struct {
     uint8_t curr_page;
+    State_t curr_state;
 } IHMState_t;
 
 static IHMState_t ihm_state = {
-    .curr_page = 0};
+    .curr_page = 0,
+    .curr_state = STARTING};
 
 static QueueSetHandle_t ihm_qs;
 static QueueHandle_t ihm_input_q;
@@ -111,9 +119,9 @@ static void write_change_page(int value) {
 
 static void write_queimador_mode(bool mode) {
     if (mode) {
-        write_button_pic_id(5, 22);
+        write_button_pic_id(5, 36);
     } else {
-        write_button_pic_id(5, 23);
+        write_button_pic_id(5, 37);
     }
 }
 
@@ -123,23 +131,25 @@ static int extract_number_from_get(uint8_t *buf, int start, int end) {
 
 static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
     if (page_id == 1) {           // Pagina sensores
-        if (component_id == 7) {  // Entrada
+        if (component_id == 6) {  // Entrada
             write_change_page(2);
-        } else if (component_id == 8) {  // Massa 1
+        } else if (component_id == 7) {  // Massa 1
             write_change_page(3);
-        } else if (component_id == 9) {  // Massa 2
+        } else if (component_id == 8) {  // Massa 2
             write_change_page(4);
-        } else if (component_id == 10) {  // Massa 3
+        } else if (component_id == 9) {  // Massa 3
             write_change_page(5);
-        } else if (component_id == 11) {  // Massa 4
+        } else if (component_id == 10) {  // Massa 4
             write_change_page(6);
-        } else if (component_id == 1) {          // Palha Lenha
+        } else if (component_id == 15) {         // Palha Lenha
             if (storage_get_queimador_mode()) {  // Se tiver na lenha
                 common_send_state_msg(STA_MSG_CHANGE_QUEIMADOR_MODE, (void *)false, portMAX_DELAY);
             } else {  // Se tiver na palha
                 common_send_state_msg(STA_MSG_CHANGE_QUEIMADOR_MODE, (void *)true, portMAX_DELAY);
             }
+        } else if (component_id == 16) {  // Finalizar Seca
         }
+
     } else if (page_id == 2) {    // Pagina Limit Entr
         if (component_id == 5) {  // Cancelar
             write_change_page(1);
@@ -184,7 +194,6 @@ static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
         }
     } else if (page_id == 17) {
         common_send_state_msg(STA_MSG_CONFIRM_NEW, (void *)NULL, portMAX_DELAY);
-        write_change_page(1);
     }
 }
 
@@ -342,7 +351,6 @@ static void dispatch_get_number_response(uint8_t *buf, int start, int end) {
 static void dispatch_continue_timer_expired() {
     if (ihm_state.curr_page == 18) {
         common_send_state_msg(STA_MSG_CONFIRM_CONTINUE, (void *)NULL, portMAX_DELAY);
-        write_change_page(1);
     }
 }
 
@@ -392,76 +400,94 @@ static void process_input(uart_event_t *uart_event) {
     }
 }
 
-static void process_update(IHMMessage_t *update_event) {
-    switch (update_event->type) {
-        case IHM_MSG_NOTIFY_NEW_DRY:
+static void handle_update_starting(IHMMessage_t *update_event) {
+    if(update_event->type == IHM_MSG_NOTIFY_NEW_DRY) {
             write_change_page(17);
-            break;
-
-        case IHM_MSG_NOTIFY_CONTINUE_DRY:
+    } else if(update_event->type == IHM_MSG_NOTIFY_CONTINUE_DRY) {
             write_change_page(18);
-            break;
-
-        case IHM_MSG_CHANGE_QUEIMADOR_MODE:
-            if (ihm_state.curr_page == 1) {
-                write_queimador_mode(update_event->payload);
-            }
-            break;
-
-        case IHM_MSG_CHANGE_SENSOR_ENTR:
-            if (ihm_state.curr_page == 1) {
-                write_text_temperature(0, update_event->payload);
-            }
-            break;
-
-        case IHM_MSG_CHANGE_SENSOR_M1:
-            if (ihm_state.curr_page == 1) {
-                write_text_temperature(1, update_event->payload);
-            }
-            break;
-
-        case IHM_MSG_CHANGE_SENSOR_M2:
-            if (ihm_state.curr_page == 1) {
-                write_text_temperature(2, update_event->payload);
-            }
-            break;
-
-        case IHM_MSG_CHANGE_SENSOR_M3:
-            if (ihm_state.curr_page == 1) {
-                write_text_temperature(3, update_event->payload);
-            }
-            break;
-
-        case IHM_MSG_CHANGE_SENSOR_M4:
-            if (ihm_state.curr_page == 1) {
-                write_text_temperature(4, update_event->payload);
-            }
-            break;
-
-        case IHM_MSG_CHANGE_ENTR_LIMITS:
-        case IHM_MSG_CHANGE_M1_LIMITS:
-        case IHM_MSG_CHANGE_M2_LIMITS:
-        case IHM_MSG_CHANGE_M3_LIMITS:
-        case IHM_MSG_CHANGE_M4_LIMITS:
+    } else if(update_event->type == IHM_MSG_RUN) {
             write_change_page(1);
-            break;
-
-        case IHM_MSG_CHANGE_CONNECT: {
-            int sensor_id = update_event->payload;
-            if (ihm_state.curr_page == 1) {
-                write_pic_id(sensor_id, 32);
-            }
-        } break;
-
-        case IHM_MSG_CHANGE_DISCONNECT: {
-            if (ihm_state.curr_page == 1) {
-                int sensor_id = update_event->payload;
-                write_pic_id(sensor_id, 31);
-                write_text_temperature(sensor_id, -1);
-            }
-        } break;
+            ihm_state.curr_state = RUNNING;
     }
 }
+
+static void process_update(IHMMessage_t *update_event) {
+    switch (ihm_state.curr_state) {
+        case STARTING:
+            handle_update_starting(update_event);
+            break;
+
+        case RUNNING:
+
+            break;
+
+        case FINISHING:
+
+            break;
+    }
+}
+
+    // switch (update_event->type) {
+
+    //     case IHM_MSG_CHANGE_QUEIMADOR_MODE:
+    //         if (ihm_state.curr_page == 1) {
+    //             write_queimador_mode(update_event->payload);
+    //         }
+    //         break;
+
+    //     case IHM_MSG_CHANGE_SENSOR_ENTR:
+    //         if (ihm_state.curr_page == 1) {
+    //             write_text_temperature(0, update_event->payload);
+    //         }
+    //         break;
+
+    //     case IHM_MSG_CHANGE_SENSOR_M1:
+    //         if (ihm_state.curr_page == 1) {
+    //             write_text_temperature(1, update_event->payload);
+    //         }
+    //         break;
+
+    //     case IHM_MSG_CHANGE_SENSOR_M2:
+    //         if (ihm_state.curr_page == 1) {
+    //             write_text_temperature(2, update_event->payload);
+    //         }
+    //         break;
+
+    //     case IHM_MSG_CHANGE_SENSOR_M3:
+    //         if (ihm_state.curr_page == 1) {
+    //             write_text_temperature(3, update_event->payload);
+    //         }
+    //         break;
+
+    //     case IHM_MSG_CHANGE_SENSOR_M4:
+    //         if (ihm_state.curr_page == 1) {
+    //             write_text_temperature(4, update_event->payload);
+    //         }
+    //         break;
+
+    //     case IHM_MSG_CHANGE_ENTR_LIMITS:
+    //     case IHM_MSG_CHANGE_M1_LIMITS:
+    //     case IHM_MSG_CHANGE_M2_LIMITS:
+    //     case IHM_MSG_CHANGE_M3_LIMITS:
+    //     case IHM_MSG_CHANGE_M4_LIMITS:
+    //         write_change_page(1);
+    //         break;
+
+    //     case IHM_MSG_CHANGE_CONNECT: {
+    //         int sensor_id = update_event->payload;
+    //         if (ihm_state.curr_page == 1) {
+    //             write_pic_id(sensor_id, 30);
+    //         }
+    //     } break;
+
+    //     case IHM_MSG_CHANGE_DISCONNECT: {
+    //         if (ihm_state.curr_page == 1) {
+    //             int sensor_id = update_event->payload;
+    //             write_pic_id(sensor_id, 29);
+    //             write_text_temperature(sensor_id, -1);
+    //         }
+    //     } break;
+    // }
 
 static void ihm_task(void *pvParameters) {
     QueueHandle_t queue_handle;

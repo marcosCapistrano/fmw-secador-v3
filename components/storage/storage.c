@@ -1,11 +1,15 @@
 #include "storage.h"
 
 #include <stdio.h>
+#include <time.h>
 
 #include "esp_log.h"
 #include "esp_spiffs.h"
 #include "esp_system.h"
+#include "esp_vfs.h"
 #include "nvs_flash.h"
+#include "i2cdev.h"
+#include "ds3231.h"
 
 #define NAMESPACE "config"
 #define LOTE_NUMBER_KEY "lote_number"
@@ -45,6 +49,8 @@
 static const char *TAG = "STORAGE";
 
 typedef enum {
+    EVENT_INIT,
+    EVENT_DEVICE_STATE,
     EVENT_LOTE_NUMBER,
     EVENT_LOTE_CONCLUDED,
     EVENT_QUEIMADOR_MODE,
@@ -81,7 +87,7 @@ typedef enum {
 
 typedef struct {
     StorageEventType_t type;
-    int value;
+    void *payload;
 } StorageEvent_t;
 
 static nvs_handle_t my_nvs_handle;
@@ -118,6 +124,8 @@ static bool conexao_m1 = false;
 static bool conexao_m2 = false;
 static bool conexao_m3 = false;
 static bool conexao_m4 = false;
+
+static i2c_dev_t rtc_dev;
 
 static bool get_bool(const char *key, bool base_value) {
     uint8_t temp_out;
@@ -168,16 +176,6 @@ void storage_set_lote_number(uint8_t new_value) {
         set_u8(LOTE_NUMBER_KEY, new_value);
         lote_number = new_value;
     }
-}
-
-uint8_t storage_new_lote_number() {
-    uint8_t new_lote_number = lote_number+1;
-    set_u8(LOTE_NUMBER_KEY, new_lote_number);
-    lote_number = new_lote_number;
-
-    ESP_LOGE(TAG, "Lote number: %d", lote_number);
-
-    return new_lote_number;
 }
 
 bool storage_get_lote_concluded() {
@@ -495,26 +493,81 @@ static void initialize_cache() {
 static void initialize_fs() {
     esp_vfs_spiffs_conf_t web_conf = {
         .base_path = "/website",
-        .partition_label = NULL,
+        .partition_label = "website",
         .max_files = 5,
-        .format_if_mount_failed = false};
+        .format_if_mount_failed = true};
 
-    // esp_vfs_spiffs_conf_t storage_conf = {
-    //     .base_path = "/storage",
-    //     .partition_label = NULL,
-    //     .max_files = 5,
-    //     .format_if_mount_failed = false};
+    esp_vfs_spiffs_conf_t storage_conf = {
+        .base_path = "/storage",
+        .partition_label = "storage",
+        .max_files = 5,
+        .format_if_mount_failed = true};
 
     ESP_ERROR_CHECK(esp_vfs_spiffs_register(&web_conf));
-    // ESP_ERROR_CHECK(esp_vfs_spiffs_register(&storage_conf));
+    ESP_ERROR_CHECK(esp_vfs_spiffs_register(&storage_conf));
 
     size_t total = 0, used = 0;
-    esp_err_t ret = esp_spiffs_info(NULL, &total, &used);
+    esp_err_t ret = esp_spiffs_info("website", &total, &used);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
     } else {
         ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
     }
+
+    ret = esp_spiffs_info("storage", &total, &used);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
+    } else {
+        ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
+    }
+}
+
+static bool file_exists(const char *path) {
+    if (access(path, F_OK) == 0)
+        return true;
+
+    return false;
+}
+
+static time_t get_time_epoch() {
+    struct tm rtcinfo;
+
+    if (ds3231_get_time(&rtc_dev, &rtcinfo) != ESP_OK) {
+        ESP_LOGE(TAG, "Could not get time.");
+    }
+
+    time_t time = mktime(&rtcinfo);
+    return time;
+}
+
+static void add_record_init(const char *path) {
+    time_t time_now = get_time_epoch();
+
+    FILE *f = fopen(path, "w");
+
+    fprintf(f, "%ld,INIT\n", time_now);
+}
+
+static void add_record_generic(const char *path, StorageEventType_t type, void *payload) {
+    time_t time_now = get_time_epoch();
+
+    FILE *f = fopen(path, "w");
+
+    fprintf(f, "%ld,INIT\n", time_now);
+}
+
+uint8_t storage_start_new_lote() {
+    uint8_t new_lote_number = lote_number + 1;
+    const char base_path[] = "/storage";
+    char full_path[25] = "\0";
+
+    sprintf(full_path, "%s/%d", base_path, (int)lote_number);
+    // add_record(full_path, EVENT_DEVICE_STATE, 1);
+
+    set_u8(LOTE_NUMBER_KEY, new_lote_number);
+    lote_number = new_lote_number;
+
+    return new_lote_number;
 }
 
 void storage_init(void) {
@@ -524,6 +577,21 @@ void storage_init(void) {
     // NVS para Configurações persistentes e persistencia de alguns outros valores
     err = nvs_open("config", NVS_READWRITE, &my_nvs_handle);
     ESP_ERROR_CHECK(err);
+
+    if (ds3231_init_desc(&rtc_dev, I2C_NUM_0, CONFIG_RTC_SDA_GPIO, CONFIG_RTC_SCL_GPIO) != ESP_OK) {
+        ESP_LOGE(TAG, "Could not init device descriptor.");
+    } else {
+        ESP_LOGI(TAG, "Found RTC!");
+
+        struct tm rtcinfo;
+
+        if (ds3231_get_time(&rtc_dev, &rtcinfo) != ESP_OK) {
+            ESP_LOGE(TAG, "Could not get time.");
+        }
+
+        ESP_LOGI(TAG, "Current date:");
+        ESP_LOGI(TAG, "%04d-%02d-%02d%02d:%02d:%02d:000Z", rtcinfo.tm_year, rtcinfo.tm_mon + 1, rtcinfo.tm_mday, rtcinfo.tm_hour, rtcinfo.tm_min, rtcinfo.tm_sec);
+    }
 
     initialize_cache();
     initialize_fs();

@@ -8,7 +8,7 @@ void storage_init();
 
 uint8_t storage_get_lote_number();
 void storage_set_lote_number(uint8_t new_value);
-uint8_t storage_new_lote_number();
+uint8_t storage_start_new_lote();
 
 bool storage_get_lote_concluded();
 void storage_set_lote_concluded(bool new_value);

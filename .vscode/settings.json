@@ -28,7 +28,9 @@
         "*.tcc": "c",
         "fstream": "c",
         "*.ipp": "c",
-        "string": "c"
+        "string": "c",
+        "esp_vfs.h": "c",
+        "esp_spiffs.h": "c"
     },
     "taskExplorer.enableMake": false,
     "search.exclude": {
