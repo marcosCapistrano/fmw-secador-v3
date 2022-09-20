@@ -29,21 +29,20 @@ static void handle_starting(StateMessage_t *state_msg) {
         storage_add_record_device_on();
 
         common_send_ihm_msg(IHM_MSG_RUN, NULL, portMAX_DELAY);
+        common_send_perif_msg(PERIF_MSG_RUN, NULL, portMAX_DELAY);
         curr_state = RUNNING;
     } else if (state_msg->type == STA_MSG_CONFIRM_CONTINUE) {
         storage_add_record_device_on();
 
         common_send_ihm_msg(IHM_MSG_RUN, NULL, portMAX_DELAY);
+        common_send_perif_msg(PERIF_MSG_RUN, NULL, portMAX_DELAY);
         curr_state = RUNNING;
     }
 }
 
 static void handle_running(StateMessage_t *state_msg) {
-    if (state_msg->type == STA_MSG_CONFIRM_NEW) {
-        // Close Old Lote File
-        // Create New Lote File
-        // Add INIT State
-        // Add ON State
+    if (state_msg->type == STA_MSG_CHANGE_SENSOR_ENTR) {
+        storage_set_sensor_entr(state_msg->payload);
     } else if (state_msg->type == STA_MSG_CONFIRM_CONTINUE) {
     }
 }
@@ -117,7 +116,6 @@ static void state_manager_task(void *pvParameters) {
 //         common_send_ihm_msg(IHM_MSG_CHANGE_M2_LIMITS, (void *)NULL, portMAX_DELAY);
 //         break;
 
-//     case STA_MSG_CHANGE_LIMIT_M3_MIN:
 //         storage_set_min_m3(state_msg.payload);
 //         break;
 

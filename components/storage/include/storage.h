@@ -8,7 +8,6 @@ void storage_init();
 
 uint8_t storage_get_lote_number();
 void storage_set_lote_number(uint8_t new_value);
-uint8_t storage_start_new_lote();
 
 bool storage_get_lote_concluded();
 void storage_set_lote_concluded(bool new_value);
@@ -28,7 +27,7 @@ void storage_set_sensor_m1(uint8_t new_value);
 uint8_t storage_get_sensor_m2();
 void storage_set_sensor_m2(uint8_t new_value);
 
-uint8_t storage_get_sensor_m3(); 
+uint8_t storage_get_sensor_m3();
 void storage_set_sensor_m3(uint8_t new_value);
 
 uint8_t storage_get_sensor_m4();
@@ -90,7 +89,28 @@ void storage_set_conexao_m3(bool new_value);
 bool storage_get_conexao_m4();
 void storage_set_conexao_m4(bool new_value);
 
+typedef enum {
+    EVENT_SENSOR_ENTR,
+    EVENT_SENSOR_M1,
+    EVENT_SENSOR_M2,
+    EVENT_SENSOR_M3,
+    EVENT_SENSOR_M4,
+
+    EVENT_ALARME_ENTRADA,
+    EVENT_ALARME_M1,
+    EVENT_ALARME_M2,
+    EVENT_ALARME_M3,
+    EVENT_ALARME_M4,
+    EVENT_QUEIMADOR,
+
+    EVENT_CONEXAO_M1,
+    EVENT_CONEXAO_M2,
+    EVENT_CONEXAO_M3,
+    EVENT_CONEXAO_M4,
+} StorageEventType_t;
+
 void storage_add_record_init();
 void storage_add_record_device_on();
+void storage_start_new_lote();
 
 #endif

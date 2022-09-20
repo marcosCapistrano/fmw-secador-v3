@@ -34,11 +34,12 @@ static DS18B20_Info *ds18b20_info = 0;
 static owb_rmt_driver_info rmt_driver_info;
 
 typedef enum {
-    INACTIVE,
-    ACTIVE
-} PerifControllerState_t;
+    STARTING,
+    RUNNING,
+    FINISHING,
+} State_t;
 
-static PerifControllerState_t curr_state = INACTIVE;
+static State_t curr_state = STARTING;
 
 extern QueueHandle_t perif_msg_q;
 
@@ -49,6 +50,18 @@ static void set_led_entr_frio(bool on);
 static void set_led_mass_quente(bool on);
 static void set_led_mass_frio(bool on);
 static void set_led_conexao(bool on);
+
+static void handle_starting(PerifMessage_t *perif_msg) {
+    if(perif_msg->type == PERIF_MSG_RUN) {
+        curr_state = RUNNING;
+    }
+}
+
+static void handle_running(PerifMessage_t *perif_msg) {
+}
+
+static void handle_finishing(PerifMessage_t *perif_msg) {
+}
 
 /*
     This task will receive events from:
@@ -92,9 +105,22 @@ static void perif_controller_task(void *pvParameters) {
 
     for (;;) {
         if (xQueueReceive(perif_msg_q, &perif_msg, pdMS_TO_TICKS(10000))) {
+            switch(curr_state) {
+                case STARTING:
+                    handle_starting(&perif_msg);
+                break;
+
+                case RUNNING:
+
+                break;
+
+                case FINISHING:
+
+                break;
+            }
         }
 
-        if (curr_state != INACTIVE) {
+        if (curr_state == RUNNING) {
             int sensor_entr = sensor_temp_read();
             common_send_state_msg(STA_MSG_CHANGE_SENSOR_ENTR, (void *)sensor_entr, portMAX_DELAY);
         }

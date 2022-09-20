@@ -48,48 +48,6 @@
 
 static const char *TAG = "STORAGE";
 
-typedef enum {
-    EVENT_INIT,
-    EVENT_DEVICE_STATE,
-    EVENT_LOTE_NUMBER,
-    EVENT_LOTE_CONCLUDED,
-    EVENT_QUEIMADOR_MODE,
-
-    EVENT_SENSOR_ENTR,
-    EVENT_SENSOR_M1,
-    EVENT_SENSOR_M2,
-    EVENT_SENSOR_M3,
-    EVENT_SENSOR_M4,
-
-    EVENT_ALARME_ENTRADA,
-    EVENT_ALARME_M1,
-    EVENT_ALARME_M2,
-    EVENT_ALARME_M3,
-    EVENT_ALARME_M4,
-    EVENT_QUEIMADOR,
-
-    EVENT_LIMIT_MIN_ENTR,
-    EVENT_LIMIT_MAX_ENTR,
-    EVENT_LIMIT_MIN_M1,
-    EVENT_LIMIT_MAX_M1,
-    EVENT_LIMIT_MIN_M2,
-    EVENT_LIMIT_MAX_M2,
-    EVENT_LIMIT_MIN_M3,
-    EVENT_LIMIT_MAX_M3,
-    EVENT_LIMIT_MIN_M4,
-    EVENT_LIMIT_MAX_M4,
-
-    EVENT_CONEXAO_M1,
-    EVENT_CONEXAO_M2,
-    EVENT_CONEXAO_M3,
-    EVENT_CONEXAO_M4,
-} StorageEventType_t;
-
-typedef struct {
-    StorageEventType_t type;
-    void *payload;
-} StorageEvent_t;
-
 static nvs_handle_t my_nvs_handle;
 
 static uint8_t lote_number = 0;
@@ -572,17 +530,42 @@ void storage_add_record_finish() {
 
     FILE *f = fopen(path, "a");
     fprintf(f, "%ld,FINISHED,%d\n", time_now, true);
+    fclose(f);
+
+    storage_set_lote_concluded(true);
+}
+
+static const char *event_type_to_string(StorageEventType_t type) {
+    switch(type) {
+        case EVENT_SENSOR_ENTR:
+            return "SENSOR_ENTR";
+        break;
+
+        default:
+        break;
+    }
+
+    return "NULL";
+}
+
+void storage_add_record_generic(StorageEventType_t type, void *payload) {
+    const char path[100] = {0};
+    time_t time_now = get_time_epoch();
+    sprintf(path, "/storage/%d", lote_number);
+
+    FILE *f = fopen(path, "a");
+
+    const char *type_str = event_type_to_string(type);
+    fprintf(f, "%ld,%s,%d\n", time_now, type_str, (int) payload);
 
     fclose(f);
 }
 
-uint8_t storage_start_new_lote() {
+void storage_start_new_lote() {
     uint8_t new_lote_number = lote_number + 1;
 
-    set_u8(LOTE_NUMBER_KEY, new_lote_number);
-    lote_number = new_lote_number;
-
-    return new_lote_number;
+    storage_set_lote_number(new_lote_number);
+    storage_set_lote_concluded(false);
 }
 
 void storage_init(void) {

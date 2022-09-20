@@ -404,8 +404,10 @@ static void handle_update_starting(IHMMessage_t *update_event) {
     if(update_event->type == IHM_MSG_NOTIFY_NEW_DRY) {
             write_change_page(17);
     } else if(update_event->type == IHM_MSG_NOTIFY_CONTINUE_DRY) {
+            ESP_LOGE(TAG, "CHANGE PAGE");
             write_change_page(18);
     } else if(update_event->type == IHM_MSG_RUN) {
+            ESP_LOGE(TAG, "CHANGE PAGEEE");
             write_change_page(1);
             ihm_state.curr_state = RUNNING;
     }

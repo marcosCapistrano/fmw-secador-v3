@@ -71,6 +71,7 @@ typedef struct {
 
 typedef enum {
     PERIF_MSG_WAIT_IHM_CONFIRMATION,
+    PERIF_MSG_RUN,
 } PerifMessageType_t;
 
 typedef struct {
