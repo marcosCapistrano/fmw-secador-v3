@@ -96,6 +96,8 @@ typedef enum {
     EVENT_SENSOR_M3,
     EVENT_SENSOR_M4,
 
+    EVENT_FINISHED,
+
     EVENT_ALARME_ENTRADA,
     EVENT_ALARME_M1,
     EVENT_ALARME_M2,
@@ -112,5 +114,7 @@ typedef enum {
 void storage_add_record_init();
 void storage_add_record_device_on();
 void storage_start_new_lote();
+void storage_add_record_generic(StorageEventType_t type, void *payload);
+
 
 #endif

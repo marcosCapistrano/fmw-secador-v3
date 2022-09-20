@@ -33,6 +33,8 @@ static OneWireBus *owb = 0;
 static DS18B20_Info *ds18b20_info = 0;
 static owb_rmt_driver_info rmt_driver_info;
 
+static const char *TAG = "PERIF_CONTROLLER";
+
 typedef enum {
     STARTING,
     RUNNING,

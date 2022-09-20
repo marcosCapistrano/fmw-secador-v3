@@ -41,8 +41,15 @@ static void handle_starting(StateMessage_t *state_msg) {
 }
 
 static void handle_running(StateMessage_t *state_msg) {
-    if (state_msg->type == STA_MSG_CHANGE_SENSOR_ENTR) {
+    if(state_msg->type == STA_MSG_FINISH) {
+        storage_set_lote_concluded(true);
+        common_send_ihm_msg(IHM_MSG_FINISH, (void *)NULL, portMAX_DELAY);
+        ESP_LOGE(TAG, "Sending IHM msg");
+
+        curr_state = STARTING;
+    } else if (state_msg->type == STA_MSG_CHANGE_SENSOR_ENTR) {
         storage_set_sensor_entr(state_msg->payload);
+        common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_ENTR, state_msg->payload, portMAX_DELAY);
     } else if (state_msg->type == STA_MSG_CONFIRM_CONTINUE) {
     }
 }

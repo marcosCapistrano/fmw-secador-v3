@@ -25,6 +25,7 @@ typedef enum {
     IHM_MSG_NOTIFY_NEW_DRY,
     IHM_MSG_NOTIFY_CONTINUE_DRY,
     IHM_MSG_RUN,
+    IHM_MSG_FINISH,
 } IHMMessageType_t;
 
 typedef struct {
@@ -62,6 +63,8 @@ typedef enum {
 
     STA_MSG_CONFIRM_CONTINUE,
     STA_MSG_CONFIRM_NEW,
+
+    STA_MSG_FINISH,
 } StateMessageType_t;
 
 typedef struct {
@@ -72,6 +75,7 @@ typedef struct {
 typedef enum {
     PERIF_MSG_WAIT_IHM_CONFIRMATION,
     PERIF_MSG_RUN,
+    PERIF_MSG_FINISH,
 } PerifMessageType_t;
 
 typedef struct {

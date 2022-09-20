@@ -3,13 +3,13 @@
 #include <stdio.h>
 #include <time.h>
 
+#include "ds3231.h"
 #include "esp_log.h"
 #include "esp_spiffs.h"
 #include "esp_system.h"
 #include "esp_vfs.h"
-#include "nvs_flash.h"
 #include "i2cdev.h"
-#include "ds3231.h"
+#include "nvs_flash.h"
 
 #define NAMESPACE "config"
 #define LOTE_NUMBER_KEY "lote_number"
@@ -143,6 +143,8 @@ void storage_set_lote_concluded(bool new_value) {
     if (lote_concluded != new_value) {
         set_bool(LOTE_CONCLUDED_KEY, new_value);
         lote_concluded = new_value;
+
+        storage_add_record_generic(EVENT_FINISHED, true);
     }
 }
 
@@ -173,6 +175,8 @@ void storage_set_sensor_entr(uint8_t new_value) {
     if (sensor_entr != new_value) {
         set_u8(SENSOR_ENTR_KEY, new_value);
         sensor_entr = new_value;
+
+        storage_add_record_generic(EVENT_SENSOR_ENTR, (void *)new_value);
     }
 }
 
@@ -536,13 +540,17 @@ void storage_add_record_finish() {
 }
 
 static const char *event_type_to_string(StorageEventType_t type) {
-    switch(type) {
+    switch (type) {
         case EVENT_SENSOR_ENTR:
             return "SENSOR_ENTR";
-        break;
+            break;
+
+        case EVENT_FINISHED:
+            return "FINISHED";
+            break;
 
         default:
-        break;
+            break;
     }
 
     return "NULL";
@@ -555,8 +563,8 @@ void storage_add_record_generic(StorageEventType_t type, void *payload) {
 
     FILE *f = fopen(path, "a");
 
-    const char *type_str = event_type_to_string(type);
-    fprintf(f, "%ld,%s,%d\n", time_now, type_str, (int) payload);
+    // type_str = event_type_to_string(type);
+    fprintf(f, "%ld,%s,%d\n", time_now, event_type_to_string(type), (int)payload);
 
     fclose(f);
 }
