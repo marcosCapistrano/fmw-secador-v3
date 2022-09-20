@@ -23,14 +23,16 @@ static const char *TAG = "STATE_MANAGER";
 
 static void handle_starting(StateMessage_t *state_msg) {
     if (state_msg->type == STA_MSG_CONFIRM_NEW) {
-        // Close Old Lote File
-        // Create New Lote File
-        // Add INIT State
-        // Add ON State
+        storage_start_new_lote();
+
+        storage_add_record_init();
+        storage_add_record_device_on();
+
         common_send_ihm_msg(IHM_MSG_RUN, NULL, portMAX_DELAY);
         curr_state = RUNNING;
-        storage_start_new_lote();
     } else if (state_msg->type == STA_MSG_CONFIRM_CONTINUE) {
+        storage_add_record_device_on();
+
         common_send_ihm_msg(IHM_MSG_RUN, NULL, portMAX_DELAY);
         curr_state = RUNNING;
     }

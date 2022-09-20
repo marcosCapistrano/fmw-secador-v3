@@ -90,4 +90,7 @@ void storage_set_conexao_m3(bool new_value);
 bool storage_get_conexao_m4();
 void storage_set_conexao_m4(bool new_value);
 
+void storage_add_record_init();
+void storage_add_record_device_on();
+
 #endif

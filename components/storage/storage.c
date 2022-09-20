@@ -540,29 +540,44 @@ static time_t get_time_epoch() {
     return time;
 }
 
-static void add_record_init(const char *path) {
+void storage_add_record_init() {
+    const char path[100] = {0};
     time_t time_now = get_time_epoch();
 
-    FILE *f = fopen(path, "w");
+    sprintf(path, "/storage/%d", lote_number);
 
-    fprintf(f, "%ld,INIT\n", time_now);
+    FILE *f = fopen(path, "w");
+    fprintf(f, "%ld,INIT,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", time_now, queimador_mode, limit_min_entr, limit_max_entr, limit_min_m1, limit_max_m1, limit_min_m2, limit_max_m2, limit_min_m3, limit_max_m3, limit_min_m4, limit_max_m4);
+
+    fclose(f);
 }
 
-static void add_record_generic(const char *path, StorageEventType_t type, void *payload) {
+void storage_add_record_device_on() {
+    const char path[100] = {0};
     time_t time_now = get_time_epoch();
 
-    FILE *f = fopen(path, "w");
+    sprintf(path, "/storage/%d", lote_number);
 
-    fprintf(f, "%ld,INIT\n", time_now);
+    FILE *f = fopen(path, "a");
+    fprintf(f, "%ld,DEVICE_STATE,%d\n", time_now, true);
+
+    fclose(f);
+}
+
+void storage_add_record_finish() {
+    const char path[100] = {0};
+    time_t time_now = get_time_epoch();
+
+    sprintf(path, "/storage/%d", lote_number);
+
+    FILE *f = fopen(path, "a");
+    fprintf(f, "%ld,FINISHED,%d\n", time_now, true);
+
+    fclose(f);
 }
 
 uint8_t storage_start_new_lote() {
     uint8_t new_lote_number = lote_number + 1;
-    const char base_path[] = "/storage";
-    char full_path[25] = "\0";
-
-    sprintf(full_path, "%s/%d", base_path, (int)lote_number);
-    // add_record(full_path, EVENT_DEVICE_STATE, 1);
 
     set_u8(LOTE_NUMBER_KEY, new_lote_number);
     lote_number = new_lote_number;
@@ -590,7 +605,7 @@ void storage_init(void) {
         }
 
         ESP_LOGI(TAG, "Current date:");
-        ESP_LOGI(TAG, "%04d-%02d-%02d%02d:%02d:%02d:000Z", rtcinfo.tm_year, rtcinfo.tm_mon + 1, rtcinfo.tm_mday, rtcinfo.tm_hour, rtcinfo.tm_min, rtcinfo.tm_sec);
+        ESP_LOGI(TAG, "%04d-%02d-%02d %02d:%02d:%02d:000Z", rtcinfo.tm_year, rtcinfo.tm_mon + 1, rtcinfo.tm_mday, rtcinfo.tm_hour, rtcinfo.tm_min, rtcinfo.tm_sec);
     }
 
     initialize_cache();

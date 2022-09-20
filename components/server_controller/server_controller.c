@@ -240,9 +240,6 @@ static esp_err_t on_get_lotes_handler(httpd_req_t* req) {
     Lote_t *lote_list = NULL;
 
     while ((entry = readdir(dir)) != NULL) {
-        // entry->d_nam
-        Lote_t *nlote = new_lote(entry->d_name);
-        add_lote_end(lote_list, nlote);
     }
     
     closedir(dir);
@@ -272,10 +269,31 @@ static httpd_uri_t uri_get_lotes = {
     .handler = on_get_lotes_handler};
 
 static esp_err_t on_get_lote_id_handler(httpd_req_t* req) {
+     char path[600] = {0};
+
+    const char s[2] = "/";
+    char *token = strtok(req->uri, s);
+    token = strtok(NULL, s);
+
+    sprintf(path, "/storage/%s", token);
+
+    FILE *file = fopen(path, "r");
+    if (file == NULL) {
+        httpd_resp_send_404(req);
+        return ESP_OK;
+    }
+
+    char lineRead[256];
+    while (fgets(lineRead, sizeof(lineRead), file)) {
+        httpd_resp_sendstr_chunk(req, lineRead);
+    }
+
+    httpd_resp_sendstr_chunk(req, NULL);
+    fclose(file); 
     return ESP_OK;
 }
 static httpd_uri_t uri_get_lote_id = {
-    .uri = "/lote/:id",
+    .uri = "/lote/*",
     .method = HTTP_GET,
     .handler = on_get_lote_id_handler};
 
