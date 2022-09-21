@@ -59,33 +59,33 @@ static TimerHandle_t m4_timer;
 static void connect_sensor(int sensor_id, int temperature, int sock_fd) {
     if (sensor_id == 1) {
         if (sensors.m1_sock_fd == -1) {
-            common_send_ihm_msg(IHM_MSG_CHANGE_CONNECT, (void*)1, portMAX_DELAY);
+            common_send_state_msg(STA_MSG_CHANGE_CONNECT, (void*)1, portMAX_DELAY);
         }
 
         sensors.m1_sock_fd = sock_fd;
         xTimerReset(m1_timer, portMAX_DELAY);
-        common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_M1, (void*)temperature, portMAX_DELAY);
+        common_send_state_msg(STA_MSG_CHANGE_SENSOR_M1, (void*)temperature, portMAX_DELAY);
     } else if (sensor_id == 2) {
         if (sensors.m2_sock_fd == -1) {
-            common_send_ihm_msg(IHM_MSG_CHANGE_CONNECT, (void*)2, portMAX_DELAY);
+            common_send_state_msg(STA_MSG_CHANGE_CONNECT, (void*)2, portMAX_DELAY);
         }
         sensors.m2_sock_fd = sock_fd;
         xTimerReset(m2_timer, portMAX_DELAY);
-        common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_M2, (void*)temperature, portMAX_DELAY);
+        common_send_state_msg(STA_MSG_CHANGE_SENSOR_M2, (void*)temperature, portMAX_DELAY);
     } else if (sensor_id == 3) {
         if (sensors.m3_sock_fd == -1) {
-            common_send_ihm_msg(IHM_MSG_CHANGE_CONNECT, (void*)3, portMAX_DELAY);
+            common_send_state_msg(STA_MSG_CHANGE_CONNECT, (void*)3, portMAX_DELAY);
         }
         sensors.m3_sock_fd = sock_fd;
         xTimerReset(m3_timer, portMAX_DELAY);
-        common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_M3, (void*)temperature, portMAX_DELAY);
+        common_send_state_msg(STA_MSG_CHANGE_SENSOR_M3, (void*)temperature, portMAX_DELAY);
     } else if (sensor_id == 4) {
         if (sensors.m4_sock_fd == -1) {
-            common_send_ihm_msg(IHM_MSG_CHANGE_CONNECT, (void*)4, portMAX_DELAY);
+            common_send_state_msg(STA_MSG_CHANGE_CONNECT, (void*)4, portMAX_DELAY);
         }
         sensors.m4_sock_fd = sock_fd;
         xTimerReset(m4_timer, portMAX_DELAY);
-        common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_M4, (void*)temperature, portMAX_DELAY);
+        common_send_state_msg(STA_MSG_CHANGE_SENSOR_M4, (void*)temperature, portMAX_DELAY);
     }
 }
 
@@ -93,16 +93,30 @@ static void disconnect_sensor(TimerHandle_t timer) {
     int sensor_id = (int)pvTimerGetTimerID(timer);
 
     if (sensor_id == 1) {
-        sensors.m1_sock_fd = -1;
-    } else if (sensor_id == 2) {
-        sensors.m2_sock_fd = -1;
-    } else if (sensor_id == 3) {
-        sensors.m3_sock_fd = -1;
-    } else if (sensor_id == 4) {
-        sensors.m4_sock_fd = -1;
-    }
+        if (sensors.m1_sock_fd != -1) {
+            sensors.m1_sock_fd = -1;
 
-    common_send_ihm_msg(IHM_MSG_CHANGE_DISCONNECT, (void*)sensor_id, portMAX_DELAY);
+            common_send_state_msg(STA_MSG_CHANGE_DISCONNECT, (void*)sensor_id, portMAX_DELAY);
+        }
+    } else if (sensor_id == 2) {
+        if (sensors.m2_sock_fd != -1) {
+            sensors.m2_sock_fd = -1;
+
+            common_send_state_msg(STA_MSG_CHANGE_DISCONNECT, (void*)sensor_id, portMAX_DELAY);
+        }
+    } else if (sensor_id == 3) {
+        if (sensors.m3_sock_fd != -1) {
+            sensors.m3_sock_fd = -1;
+
+            common_send_state_msg(STA_MSG_CHANGE_DISCONNECT, (void*)sensor_id, portMAX_DELAY);
+        }
+    } else if (sensor_id == 4) {
+        if (sensors.m4_sock_fd != -1) {
+            sensors.m4_sock_fd = -1;
+
+            common_send_state_msg(STA_MSG_CHANGE_DISCONNECT, (void*)sensor_id, portMAX_DELAY);
+        }
+    }
 }
 
 static esp_err_t set_content_type_from_file(httpd_req_t* req, const char* filepath) {
@@ -237,15 +251,15 @@ static esp_err_t on_get_lotes_handler(httpd_req_t* req) {
     struct dirent* entry;
     DIR* dir = opendir("/storage");
 
-    Lote_t *lote_list = NULL;
+    Lote_t* lote_list = NULL;
 
     while ((entry = readdir(dir)) != NULL) {
     }
-    
+
     closedir(dir);
 
     char response[250] = {0};
-    Lote_t *curr_lote;
+    Lote_t* curr_lote;
     for (curr_lote = lote_list; curr_lote != NULL; curr_lote = curr_lote->next) {
         ESP_LOGE(TAG, "%s", curr_lote->name);
         char append[25] = {0};
@@ -269,15 +283,15 @@ static httpd_uri_t uri_get_lotes = {
     .handler = on_get_lotes_handler};
 
 static esp_err_t on_get_lote_id_handler(httpd_req_t* req) {
-     char path[600] = {0};
+    char path[600] = {0};
 
     const char s[2] = "/";
-    char *token = strtok(req->uri, s);
+    char* token = strtok(req->uri, s);
     token = strtok(NULL, s);
 
     sprintf(path, "/storage/%s", token);
 
-    FILE *file = fopen(path, "r");
+    FILE* file = fopen(path, "r");
     if (file == NULL) {
         httpd_resp_send_404(req);
         return ESP_OK;
@@ -289,7 +303,7 @@ static esp_err_t on_get_lote_id_handler(httpd_req_t* req) {
     }
 
     httpd_resp_sendstr_chunk(req, NULL);
-    fclose(file); 
+    fclose(file);
     return ESP_OK;
 }
 static httpd_uri_t uri_get_lote_id = {
@@ -354,19 +368,26 @@ static httpd_close_func_t on_close_session(httpd_handle_t* handle, int sock_fd) 
 
     if (sock_fd == sensors.m1_sock_fd) {
         sensor_id = 1;
+
+        common_send_state_msg(STA_MSG_CHANGE_DISCONNECT, (void*)sensor_id, portMAX_DELAY);
         sensors.m1_sock_fd = -1;
     } else if (sock_fd == sensors.m2_sock_fd) {
         sensor_id = 2;
-        sensors.m2_sock_fd = -1;
+
+        common_send_state_msg(STA_MSG_CHANGE_DISCONNECT, (void*)sensor_id, portMAX_DELAY);
+        sensors.m1_sock_fd = -1;
     } else if (sock_fd == sensors.m3_sock_fd) {
         sensor_id = 3;
-        sensors.m3_sock_fd = -1;
+
+        common_send_state_msg(STA_MSG_CHANGE_DISCONNECT, (void*)sensor_id, portMAX_DELAY);
+        sensors.m4_sock_fd = -1;
     } else if (sock_fd == sensors.m4_sock_fd) {
         sensor_id = 4;
+        
+        common_send_state_msg(STA_MSG_CHANGE_DISCONNECT, (void*)sensor_id, portMAX_DELAY);
         sensors.m4_sock_fd = -1;
     }
 
-    common_send_ihm_msg(IHM_MSG_CHANGE_DISCONNECT, (void*)sensor_id, portMAX_DELAY);
     close(sock_fd);
 
     return ESP_OK;

@@ -18,12 +18,25 @@
 #define QUEIMADOR_MODE_KEY "queim_mode"
 #define QUEIMADOR_STATE_KEY "queim_state"
 
+#define QUEIMADOR_ENTR_KEY "queim_entr"
+#define QUEIMADOR_M1_KEY "queim_m1"
+#define QUEIMADOR_M2_KEY "queim_m2"
+#define QUEIMADOR_M3_KEY "queim_m3"
+#define QUEIMADOR_M4_KEY "queim_m4"
+
 #define SENSOR_ENTR_KEY "sens_entr"
 #define SENSOR_M1_KEY "sens_m1"
 #define SENSOR_M2_KEY "sens_m2"
 #define SENSOR_M3_KEY "sens_m3"
 #define SENSOR_M4_KEY "sens_m4"
 
+#define IS_AWARE_ENTR_KEY "aware_entr"
+#define IS_AWARE_M1_KEY "aware_m1"
+#define IS_AWARE_M2_KEY "aware_m2"
+#define IS_AWARE_M3_KEY "aware_m3"
+#define IS_AWARE_M4_KEY "aware_m4"
+
+#define ALARME_KEY "alarm"
 #define ALARME_ENTR_KEY "alarm_entr"
 #define ALARME_M1_KEY "alarm_m1"
 #define ALARME_M2_KEY "alarm_m2"
@@ -46,6 +59,11 @@
 #define CONEXAO_M3_KEY "m3_connect"
 #define CONEXAO_M4_KEY "m4_connect"
 
+#define CONNECTED_M1_KEY "m1_connected"
+#define CONNECTED_M2_KEY "m2_connected"
+#define CONNECTED_M3_KEY "m3_connected"
+#define CONNECTED_M4_KEY "m4_connected"
+
 static const char *TAG = "STORAGE";
 
 static nvs_handle_t my_nvs_handle;
@@ -55,17 +73,31 @@ static bool lote_concluded = true;   // FALSE = Começado, não finalizado, TRUE
 static bool queimador_mode = false;  // FALSE = Palha, TRUE = Lenha
 static bool queimador_state = false;
 
+static bool should_queimador_entr = false;
+static bool should_queimador_m1 = false;
+static bool should_queimador_m2 = false;
+static bool should_queimador_m3 = false;
+static bool should_queimador_m4 = false;
+
 static uint8_t sensor_entr = 0;
 static uint8_t sensor_m1 = 0;
 static uint8_t sensor_m2 = 0;
 static uint8_t sensor_m3 = 0;
 static uint8_t sensor_m4 = 0;
 
-static bool alarm_entr = false;
-static bool alarm_m1 = false;
-static bool alarm_m2 = false;
-static bool alarm_m3 = false;
-static bool alarm_m4 = false;
+static bool is_aware_entr = false;
+static bool is_aware_m1 = false;
+static bool is_aware_m2 = false;
+static bool is_aware_m3 = false;
+static bool is_aware_m4 = false;
+
+static bool should_alarme_entr = false;
+static bool should_alarme_m1 = false;
+static bool should_alarme_m2 = false;
+static bool should_alarme_m3 = false;
+static bool should_alarme_m4 = false;
+
+static bool alarme_state = false;
 
 static uint8_t limit_min_entr = 0;
 static uint8_t limit_max_entr = 100;
@@ -82,6 +114,12 @@ static bool conexao_m1 = false;
 static bool conexao_m2 = false;
 static bool conexao_m3 = false;
 static bool conexao_m4 = false;
+
+static bool should_connected_entr = false;
+static bool should_connected_m1 = false;
+static bool should_connected_m2 = false;
+static bool should_connected_m3 = false;
+static bool should_connected_m4 = false;
 
 static i2c_dev_t rtc_dev;
 
@@ -220,53 +258,209 @@ void storage_set_sensor_m4(uint8_t new_value) {
     }
 }
 
-bool storage_get_alarme_entr() {
-    return alarm_entr;
+bool storage_get_is_aware_entr() {
+    return is_aware_entr;
 }
-void storage_set_alarme_entr(bool new_value) {
-    if (alarm_entr != new_value) {
+
+void storage_set_is_aware_entr(bool new_value) {
+    if (is_aware_entr != new_value) {
+        set_bool(IS_AWARE_ENTR_KEY, new_value);
+        is_aware_entr = new_value;
+    }
+}
+
+bool storage_get_is_aware_m1() {
+    return is_aware_m1;
+}
+
+void storage_set_is_aware_m1(bool new_value) {
+    if (is_aware_m1 != new_value) {
+        set_bool(IS_AWARE_M1_KEY, new_value);
+        is_aware_m1 = new_value;
+    }
+}
+
+bool storage_get_is_aware_m2() {
+    return is_aware_m2;
+}
+
+void storage_set_is_aware_m2(bool new_value) {
+    if (is_aware_m2 != new_value) {
+        set_bool(IS_AWARE_M2_KEY, new_value);
+        is_aware_m2 = new_value;
+    }
+}
+
+bool storage_get_is_aware_m3() {
+    return is_aware_m3;
+}
+
+void storage_set_is_aware_m3(bool new_value) {
+    if (is_aware_m3 != new_value) {
+        set_bool(IS_AWARE_M3_KEY, new_value);
+        is_aware_m3 = new_value;
+    }
+}
+
+bool storage_get_is_aware_m4() {
+    return is_aware_m4;
+}
+
+void storage_set_is_aware_m4(bool new_value) {
+    if (is_aware_m4 != new_value) {
+        set_bool(IS_AWARE_M4_KEY, new_value);
+        is_aware_m4 = new_value;
+    }
+}
+
+bool storage_get_alarme_state() {
+    return alarme_state;
+}
+void storage_set_alarme_state(bool new_value) {
+    if (alarme_state != new_value) {
+        set_bool(ALARME_KEY, new_value);
+        alarme_state = new_value;
+    }
+}
+
+bool storage_get_should_alarme_entr() {
+    return should_alarme_entr;
+}
+void storage_set_should_alarme_entr(bool new_value) {
+    if (should_alarme_entr != new_value) {
         set_bool(ALARME_ENTR_KEY, new_value);
-        alarm_entr = new_value;
+        should_alarme_entr = new_value;
     }
 }
 
-bool storage_get_alarme_m1() {
-    return alarm_m1;
+bool storage_get_should_queimador_entr() {
+    return should_queimador_entr;
 }
-void storage_set_alarme_m1(bool new_value) {
-    if (alarm_m1 != new_value) {
+
+void storage_set_should_queimador_entr(bool new_value) {
+    if (should_queimador_entr != new_value) {
+        set_bool(QUEIMADOR_ENTR_KEY, new_value);
+        should_queimador_entr = new_value;
+    }
+}
+
+bool storage_get_should_queimador_m1() {
+    return should_queimador_m1;
+}
+void storage_set_should_queimador_m1(bool new_value) {
+    if (should_queimador_m1 != new_value) {
+        set_bool(QUEIMADOR_M1_KEY, new_value);
+        should_queimador_m1 = new_value;
+    }
+}
+
+bool storage_get_should_queimador_m2() {
+    return should_queimador_m2;
+}
+void storage_set_should_queimador_m2(bool new_value) {
+    if (should_queimador_m2 != new_value) {
+        set_bool(QUEIMADOR_M2_KEY, new_value);
+        should_queimador_m2 = new_value;
+    }
+}
+
+bool storage_get_should_queimador_m3() {
+    return should_queimador_m3;
+}
+void storage_set_should_queimador_m3(bool new_value) {
+    if (should_queimador_m3 != new_value) {
+        set_bool(QUEIMADOR_M3_KEY, new_value);
+        should_queimador_m3 = new_value;
+    }
+}
+
+bool storage_get_should_queimador_m4() {
+    return should_queimador_m4;
+}
+void storage_set_should_queimador_m4(bool new_value) {
+    if (should_queimador_m4 != new_value) {
+        set_bool(QUEIMADOR_M4_KEY, new_value);
+        should_queimador_m4 = new_value;
+    }
+}
+
+bool storage_get_should_alarme_m1() {
+    return should_alarme_m1;
+}
+void storage_set_should_alarme_m1(bool new_value) {
+    if (should_alarme_m1 != new_value) {
         set_bool(ALARME_M1_KEY, new_value);
-        alarm_m1 = new_value;
+        should_alarme_m1 = new_value;
     }
 }
 
-bool storage_get_alarme_m2() {
-    return alarm_m2;
+bool storage_get_should_alarme_m2() {
+    return should_alarme_m2;
 }
-void storage_set_alarme_m2(bool new_value) {
-    if (alarm_m2 != new_value) {
+void storage_set_should_alarme_m2(bool new_value) {
+    if (should_alarme_m2 != new_value) {
         set_bool(ALARME_M2_KEY, new_value);
-        alarm_m2 = new_value;
+        should_alarme_m2 = new_value;
     }
 }
 
-bool storage_get_alarme_m3() {
-    return alarm_m3;
+bool storage_get_should_alarme_m3() {
+    return should_alarme_m3;
 }
-void storage_set_alarme_m3(bool new_value) {
-    if (alarm_m3 != new_value) {
+void storage_set_should_alarme_m3(bool new_value) {
+    if (should_alarme_m3 != new_value) {
         set_bool(ALARME_M3_KEY, new_value);
-        alarm_m3 = new_value;
+        should_alarme_m3 = new_value;
     }
 }
 
-bool storage_get_alarme_m4() {
-    return alarm_m4;
+bool storage_get_should_alarme_m4() {
+    return should_alarme_m4;
 }
-void storage_set_alarme_m4(bool new_value) {
-    if (alarm_m4 != new_value) {
+void storage_set_should_alarme_m4(bool new_value) {
+    if (should_alarme_m4 != new_value) {
         set_bool(ALARME_M4_KEY, new_value);
-        alarm_m4 = new_value;
+        should_alarme_m4 = new_value;
+    }
+}
+
+bool storage_get_should_connected_m1() {
+    return should_connected_m1;
+}
+void storage_set_should_connected_m1(bool new_value) {
+    if (should_connected_m1 != new_value) {
+        set_bool(CONNECTED_M1_KEY, new_value);
+        should_connected_m1 = new_value;
+    }
+}
+
+bool storage_get_should_connected_m2() {
+    return should_connected_m2;
+}
+void storage_set_should_connected_m2(bool new_value) {
+    if (should_connected_m2 != new_value) {
+        set_bool(CONNECTED_M2_KEY, new_value);
+        should_connected_m2 = new_value;
+    }
+}
+
+bool storage_get_should_connected_m3() {
+    return should_connected_m3;
+}
+void storage_set_should_connected_m3(bool new_value) {
+    if (should_connected_m3 != new_value) {
+        set_bool(CONNECTED_M3_KEY, new_value);
+        should_connected_m3 = new_value;
+    }
+}
+
+bool storage_get_should_connected_m4() {
+    return should_connected_m4;
+}
+void storage_set_should_connected_m4(bool new_value) {
+    if (should_connected_m4 != new_value) {
+        set_bool(CONNECTED_M4_KEY, new_value);
+        should_connected_m4 = new_value;
     }
 }
 
@@ -410,6 +604,22 @@ void storage_set_conexao_m4(bool new_value) {
     }
 }
 
+void storage_set_connection(int sensor_id, bool new_value) {
+    if (sensor_id == 1) {
+        ESP_LOGI(TAG, "Setando conexao m1");
+        storage_set_conexao_m1(new_value);
+    } else if (sensor_id == 2) {
+        ESP_LOGI(TAG, "Setando conexao m2");
+        storage_set_conexao_m2(new_value);
+    } else if (sensor_id == 3) {
+        ESP_LOGI(TAG, "Setando conexao m3");
+        storage_set_conexao_m3(new_value);
+    } else if (sensor_id == 4) {
+        ESP_LOGI(TAG, "Setando conexao m4");
+        storage_set_conexao_m4(new_value);
+    }
+}
+
 void storage_get_all_lotes() {
 }
 
@@ -420,17 +630,30 @@ static void initialize_cache() {
     queimador_mode = get_bool(QUEIMADOR_MODE_KEY, false);
     queimador_state = get_bool(QUEIMADOR_STATE_KEY, false);
 
+    should_queimador_entr = get_bool(ALARME_ENTR_KEY, false);
+    should_queimador_m1 = get_bool(ALARME_M1_KEY, false);
+    should_queimador_m2 = get_bool(ALARME_M2_KEY, false);
+    should_queimador_m3 = get_bool(ALARME_M3_KEY, false);
+    should_queimador_m4 = get_bool(ALARME_M4_KEY, false);
+
     sensor_entr = get_u8(SENSOR_ENTR_KEY, 0);
     sensor_m1 = get_u8(SENSOR_M1_KEY, 0);
     sensor_m2 = get_u8(SENSOR_M2_KEY, 0);
     sensor_m3 = get_u8(SENSOR_M3_KEY, 0);
     sensor_m4 = get_u8(SENSOR_M4_KEY, 0);
 
-    alarm_entr = get_bool(ALARME_ENTR_KEY, false);
-    alarm_m1 = get_bool(ALARME_M1_KEY, false);
-    alarm_m2 = get_bool(ALARME_M2_KEY, false);
-    alarm_m3 = get_bool(ALARME_M3_KEY, false);
-    alarm_m4 = get_bool(ALARME_M4_KEY, false);
+    alarme_state = get_bool(ALARME_KEY, false);
+    should_alarme_entr = get_bool(ALARME_ENTR_KEY, false);
+    should_alarme_m1 = get_bool(ALARME_M1_KEY, false);
+    should_alarme_m2 = get_bool(ALARME_M2_KEY, false);
+    should_alarme_m3 = get_bool(ALARME_M3_KEY, false);
+    should_alarme_m4 = get_bool(ALARME_M4_KEY, false);
+
+    is_aware_entr = get_bool(IS_AWARE_ENTR_KEY, false);
+    is_aware_m1 = get_bool(IS_AWARE_M1_KEY, false);
+    is_aware_m2 = get_bool(IS_AWARE_M2_KEY, false);
+    is_aware_m3 = get_bool(IS_AWARE_M3_KEY, false);
+    is_aware_m4 = get_bool(IS_AWARE_M4_KEY, false);
 
     limit_min_entr = get_u8(ENTR_MIN_KEY, 0);
     limit_max_entr = get_u8(ENTR_MAX_KEY, 100);
@@ -442,9 +665,6 @@ static void initialize_cache() {
     limit_max_m3 = get_u8(M3_MAX_KEY, 100);
     limit_min_m4 = get_u8(M4_MIN_KEY, 0);
     limit_max_m4 = get_u8(M4_MAX_KEY, 100);
-
-    ESP_LOGE(TAG, "Limits M1 %d - %d", limit_min_m1, limit_max_m1);
-    ESP_LOGE(TAG, "Limits M2 %d - %d", limit_min_m2, limit_max_m2);
 
     conexao_m1 = get_bool(CONEXAO_M1_KEY, false);
     conexao_m2 = get_bool(CONEXAO_M2_KEY, false);

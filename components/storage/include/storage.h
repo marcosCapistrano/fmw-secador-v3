@@ -33,6 +33,21 @@ void storage_set_sensor_m3(uint8_t new_value);
 uint8_t storage_get_sensor_m4();
 void storage_set_sensor_m4(uint8_t new_value);
 
+bool storage_get_is_aware_entr();
+void storage_set_is_aware_entr(bool new_value);
+
+bool storage_get_is_aware_m1();
+void storage_set_is_aware_m1(bool new_value);
+
+bool storage_get_is_aware_m2();
+void storage_set_is_aware_m2(bool new_value);
+
+bool storage_get_is_aware_m3();
+void storage_set_is_aware_m3(bool new_value);
+
+bool storage_get_is_aware_m4();
+void storage_set_is_aware_m4(bool new_value);
+
 bool storage_get_alarme_entr();
 void storage_set_alarme_entr(bool new_value);
 
@@ -88,6 +103,53 @@ void storage_set_conexao_m3(bool new_value);
 
 bool storage_get_conexao_m4();
 void storage_set_conexao_m4(bool new_value);
+
+bool storage_get_should_alarme_entr();
+void storage_set_should_alarme_entr(bool new_value);
+
+bool storage_get_should_queimador_entr();
+void storage_set_should_queimador_entr(bool new_value);
+
+bool storage_get_should_queimador_m1();
+void storage_set_should_queimador_m1(bool new_value);
+
+bool storage_get_should_queimador_m2();
+void storage_set_should_queimador_m2(bool new_value);
+
+bool storage_get_should_queimador_m3();
+void storage_set_should_queimador_m3(bool new_value);
+
+bool storage_get_should_queimador_m4();
+void storage_set_should_queimador_m4(bool new_value);
+
+bool storage_get_should_alarme_m1();
+void storage_set_should_alarme_m1(bool new_value);
+
+bool storage_get_should_alarme_m2();
+void storage_set_should_alarme_m2(bool new_value);
+
+bool storage_get_should_alarme_m3();
+void storage_set_should_alarme_m3(bool new_value);
+
+bool storage_get_should_alarme_m4();
+void storage_set_should_alarme_m4(bool new_value);
+
+bool storage_get_should_connected_m1();
+void storage_set_should_connected_m1(bool new_value);
+
+bool storage_get_should_connected_m2();
+void storage_set_should_connected_m2(bool new_value);
+
+bool storage_get_should_connected_m3();
+void storage_set_should_connected_m3(bool new_value);
+
+bool storage_get_should_connected_m4();
+void storage_set_should_connected_m4(bool new_value);
+
+bool storage_get_alarme_state();
+void storage_set_alarme_state(bool new_value);
+
+void storage_set_connection(int sensor_id, bool new_value);
 
 typedef enum {
     EVENT_SENSOR_ENTR,

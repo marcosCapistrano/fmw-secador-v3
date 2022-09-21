@@ -22,7 +22,6 @@
 typedef enum {
     STARTING,
     RUNNING,
-    FINISHING,
 } State_t;
 
 typedef struct {
@@ -130,7 +129,7 @@ static int extract_number_from_get(uint8_t *buf, int start, int end) {
 }
 
 static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
-        ESP_LOGE(TAG, "button released! %d, compo: %d", page_id, component_id);
+    ESP_LOGE(TAG, "button released! %d, compo: %d", page_id, component_id);
     if (page_id == 1) {           // Pagina sensores
         if (component_id == 6) {  // Entrada
             write_change_page(2);
@@ -168,8 +167,7 @@ static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
             write_to_ihm("get n0.val");
             write_to_ihm("get n1.val");
         }
-    } else if (page_id == 4) {  // Pagina Limit M2
-
+    } else if (page_id == 4) {    // Pagina Limit M2
         if (component_id == 5) {  // Cancelar
             write_change_page(1);
         } else if (component_id == 6) {  // Aplicar
@@ -194,7 +192,27 @@ static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
             write_to_ihm("get n0.val");
             write_to_ihm("get n1.val");
         }
-    } else if (page_id == 17) {
+    } else if (page_id == 7) {   //Pagina Low Entr 
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_ENTR, (void *) NULL, portMAX_DELAY);
+    } else if (page_id == 8) {   //Pagina High Entr 
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_ENTR, (void *) NULL, portMAX_DELAY);
+    } else if (page_id == 9) {   //Pagina Low M1 
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M1, (void *) NULL, portMAX_DELAY);
+    } else if (page_id == 10) {   //Pagina High M1 
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M1, (void *) NULL, portMAX_DELAY);
+    } else if (page_id == 11) {   //Pagina Low M2 
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M2, (void *) NULL, portMAX_DELAY);
+    } else if (page_id == 12) {   //Pagina High M2 
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M2, (void *) NULL, portMAX_DELAY);
+    } else if (page_id == 13) {   //Pagina Low M3 
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M3, (void *) NULL, portMAX_DELAY);
+    } else if (page_id == 14) {   //Pagina High M3 
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M3, (void *) NULL, portMAX_DELAY);
+    } else if (page_id == 15) {   //Pagina Low M4 
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M4, (void *) NULL, portMAX_DELAY);
+    } else if (page_id == 16) {   //Pagina High M4 
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M4, (void *) NULL, portMAX_DELAY);
+    }  else if (page_id == 17) {
         common_send_state_msg(STA_MSG_CONFIRM_NEW, (void *)NULL, portMAX_DELAY);
     }
 }
@@ -308,27 +326,22 @@ static void send_limits_changed() {
         case ENTR: {
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_ENTR_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_ENTR_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
-            ESP_LOGE(TAG, "Setting ENTR LIMITS %d - %d", limit_page_details.limit_min, limit_page_details.limit_max);
         } break;
         case M1: {
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M1_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M1_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
-            ESP_LOGE(TAG, "Setting M1 LIMITS %d - %d", limit_page_details.limit_min, limit_page_details.limit_max);
         } break;
         case M2: {
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M2_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M2_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
-            ESP_LOGE(TAG, "Setting M2 LIMITS %d - %d", limit_page_details.limit_min, limit_page_details.limit_max);
         } break;
         case M3: {
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M3_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M3_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
-            ESP_LOGE(TAG, "Setting M3 LIMITS %d - %d", limit_page_details.limit_min, limit_page_details.limit_max);
         } break;
         case M4: {
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M4_MIN, (void *)limit_page_details.limit_min, portMAX_DELAY);
             common_send_state_msg(STA_MSG_CHANGE_LIMIT_M4_MAX, (void *)limit_page_details.limit_max, portMAX_DELAY);
-            ESP_LOGE(TAG, "Setting M4 LIMITS %d - %d", limit_page_details.limit_min, limit_page_details.limit_max);
         } break;
 
         default:
@@ -346,16 +359,15 @@ static void dispatch_get_number_response(uint8_t *buf, int start, int end) {
             send_limits_changed();
             reset_temp_limits();
         }
-    } else {
-        ESP_LOGE(TAG, "OPA BAD");
     }
 }
 
 static void dispatch_continue_timer_expired() {
     if (ihm_state.curr_page == 18) {
         common_send_state_msg(STA_MSG_CONFIRM_CONTINUE, (void *)NULL, portMAX_DELAY);
-    } else if(ihm_state.curr_page == 19) {
-        write_change_page(17);   
+    } else if (ihm_state.curr_page == 19) {
+        ihm_state.curr_state = STARTING;
+        write_change_page(17);
     }
 }
 
@@ -363,7 +375,7 @@ static void process_command(uint8_t *data, int start, int end) {
     size_t length = end - start + 1;
     uint8_t data_head = data[start];
 
-    for(int i=start;i<end; i++) {
+    for (int i = start; i < end; i++) {
         ESP_LOGE(TAG, "[%d]: %d", i, data[i]);
     }
 
@@ -425,10 +437,96 @@ static void handle_update_starting(IHMMessage_t *update_event) {
 }
 
 static void handle_update_running(IHMMessage_t *update_event) {
-    ESP_LOGE(TAG, "handingle update running");
     if (update_event->type == IHM_MSG_FINISH) {
         write_change_page(19);
         ihm_state.curr_state = STARTING;
+    } else if (update_event->type == IHM_MSG_CHANGE_SENSOR_ENTR) {
+        if (ihm_state.curr_page == 1)
+            write_text_temperature(0, update_event->payload);
+    } else if (update_event->type == IHM_MSG_CHANGE_SENSOR_M1) {
+        if (ihm_state.curr_page == 1)
+            write_text_temperature(1, update_event->payload);
+    } else if (update_event->type == IHM_MSG_CHANGE_SENSOR_M2) {
+        if (ihm_state.curr_page == 1)
+            write_text_temperature(2, update_event->payload);
+    } else if (update_event->type == IHM_MSG_CHANGE_SENSOR_M3) {
+        if (ihm_state.curr_page == 1)
+            write_text_temperature(3, update_event->payload);
+    } else if (update_event->type == IHM_MSG_CHANGE_SENSOR_M4) {
+        if (ihm_state.curr_page == 1)
+            write_text_temperature(4, update_event->payload);
+    } else if (update_event->type == IHM_MSG_CONFIRM_LIMIT_ENTR) {
+        if (ihm_state.curr_page == 2)
+            write_change_page(1);
+    } else if (update_event->type == IHM_MSG_CONFIRM_LIMIT_M1) {
+        if (ihm_state.curr_page == 3)
+            write_change_page(1);
+    } else if (update_event->type == IHM_MSG_CONFIRM_LIMIT_M2) {
+        if (ihm_state.curr_page == 4)
+            write_change_page(1);
+    } else if (update_event->type == IHM_MSG_CONFIRM_LIMIT_M3) {
+        if (ihm_state.curr_page == 5)
+            write_change_page(1);
+    } else if (update_event->type == IHM_MSG_CONFIRM_LIMIT_M4) {
+        if (ihm_state.curr_page == 6)
+            write_change_page(1);
+    } else if (update_event->type == IHM_MSG_CONFIRM_IS_AWARE_ENTR) {
+        if (ihm_state.curr_page == 7 || ihm_state.curr_page == 8)
+            write_change_page(1);
+    } else if (update_event->type == IHM_MSG_CONFIRM_IS_AWARE_M1) {
+        if (ihm_state.curr_page == 9 || ihm_state.curr_page == 10)
+            write_change_page(1);
+    } else if (update_event->type == IHM_MSG_CONFIRM_IS_AWARE_M2) {
+        if (ihm_state.curr_page == 11 || ihm_state.curr_page == 12)
+            write_change_page(1);
+    } else if (update_event->type == IHM_MSG_CONFIRM_IS_AWARE_M3) {
+        if (ihm_state.curr_page == 13 || ihm_state.curr_page == 14)
+            write_change_page(1);
+    } else if (update_event->type == IHM_MSG_CONFIRM_IS_AWARE_M4) {
+        if (ihm_state.curr_page == 15 || ihm_state.curr_page == 16)
+            write_change_page(1);
+    } else if (update_event->type == IHM_MSG_CHANGE_CONNECT) {
+        if (ihm_state.curr_page == 1)
+            write_pic_id(update_event->payload, 30);
+    } else if (update_event->type == IHM_MSG_CHANGE_DISCONNECT) {
+        if (ihm_state.curr_page == 1) {
+            write_pic_id(update_event->payload, 29);
+            write_text_temperature(update_event->payload, -1);
+        }
+    } else if (update_event->type == IHM_MSG_CHANGE_QUEIMADOR_MODE) {
+        if (ihm_state.curr_page == 1)
+            write_queimador_mode(update_event->payload);
+    } else if (update_event->type == IHM_MSG_NOTIFY_LOW_ENTR) {
+        ESP_LOGE(TAG, "INLOW ENTR!!!");
+        if (ihm_state.curr_page != 7)
+            write_change_page(7);
+    } else if (update_event->type == IHM_MSG_NOTIFY_HIGH_ENTR) {
+        if (ihm_state.curr_page != 8)
+            write_change_page(8);
+    } else if (update_event->type == IHM_MSG_NOTIFY_LOW_M1) {
+        if (ihm_state.curr_page != 9)
+            write_change_page(9);
+    } else if (update_event->type == IHM_MSG_NOTIFY_HIGH_M1) {
+        if (ihm_state.curr_page != 10)
+            write_change_page(10);
+    } else if (update_event->type == IHM_MSG_NOTIFY_LOW_M2) {
+        if (ihm_state.curr_page != 11)
+            write_change_page(11);
+    } else if (update_event->type == IHM_MSG_NOTIFY_HIGH_M2) {
+        if (ihm_state.curr_page != 12)
+            write_change_page(12);
+    } else if (update_event->type == IHM_MSG_NOTIFY_LOW_M3) {
+        if (ihm_state.curr_page != 13)
+            write_change_page(13);
+    } else if (update_event->type == IHM_MSG_NOTIFY_HIGH_M3) {
+        if (ihm_state.curr_page != 14)
+            write_change_page(14);
+    } else if (update_event->type == IHM_MSG_NOTIFY_LOW_M4) {
+        if (ihm_state.curr_page != 15)
+            write_change_page(15);
+    } else if (update_event->type == IHM_MSG_NOTIFY_HIGH_M4) {
+        if (ihm_state.curr_page != 16)
+            write_change_page(16);
     }
 }
 
@@ -441,74 +539,8 @@ static void process_update(IHMMessage_t *update_event) {
         case RUNNING:
             handle_update_running(update_event);
             break;
-
-        case FINISHING:
-
-            break;
     }
 }
-
-// switch (update_event->type) {
-
-//     case IHM_MSG_CHANGE_QUEIMADOR_MODE:
-//         if (ihm_state.curr_page == 1) {
-//             write_queimador_mode(update_event->payload);
-//         }
-//         break;
-
-//     case IHM_MSG_CHANGE_SENSOR_ENTR:
-//         if (ihm_state.curr_page == 1) {
-//             write_text_temperature(0, update_event->payload);
-//         }
-//         break;
-
-//     case IHM_MSG_CHANGE_SENSOR_M1:
-//         if (ihm_state.curr_page == 1) {
-//             write_text_temperature(1, update_event->payload);
-//         }
-//         break;
-
-//     case IHM_MSG_CHANGE_SENSOR_M2:
-//         if (ihm_state.curr_page == 1) {
-//             write_text_temperature(2, update_event->payload);
-//         }
-//         break;
-
-//     case IHM_MSG_CHANGE_SENSOR_M3:
-//         if (ihm_state.curr_page == 1) {
-//             write_text_temperature(3, update_event->payload);
-//         }
-//         break;
-
-//     case IHM_MSG_CHANGE_SENSOR_M4:
-//         if (ihm_state.curr_page == 1) {
-//             write_text_temperature(4, update_event->payload);
-//         }
-//         break;
-
-//     case IHM_MSG_CHANGE_ENTR_LIMITS:
-//     case IHM_MSG_CHANGE_M1_LIMITS:
-//     case IHM_MSG_CHANGE_M2_LIMITS:
-//     case IHM_MSG_CHANGE_M3_LIMITS:
-//     case IHM_MSG_CHANGE_M4_LIMITS:
-//         write_change_page(1);
-//         break;
-
-//     case IHM_MSG_CHANGE_CONNECT: {
-//         int sensor_id = update_event->payload;
-//         if (ihm_state.curr_page == 1) {
-//             write_pic_id(sensor_id, 30);
-//         }
-//     } break;
-
-//     case IHM_MSG_CHANGE_DISCONNECT: {
-//         if (ihm_state.curr_page == 1) {
-//             int sensor_id = update_event->payload;
-//             write_pic_id(sensor_id, 29);
-//             write_text_temperature(sensor_id, -1);
-//         }
-//     } break;
-// }
 
 static void ihm_task(void *pvParameters) {
     QueueHandle_t queue_handle;
