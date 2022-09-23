@@ -64,6 +64,12 @@
 #define CONNECTED_M3_KEY "m3_connected"
 #define CONNECTED_M4_KEY "m4_connected"
 
+#define LED_CONNECTION_KEY "led_connection"
+#define LED_ENTR_Q_KEY "led_entr_q"
+#define LED_ENTR_F_KEY "led_entr_f"
+#define LED_MASS_Q_KEY "led_mass_q"
+#define LED_MASS_F_KEY "led_mass_f"
+
 static const char *TAG = "STORAGE";
 
 static nvs_handle_t my_nvs_handle;
@@ -120,6 +126,12 @@ static bool should_connected_m1 = false;
 static bool should_connected_m2 = false;
 static bool should_connected_m3 = false;
 static bool should_connected_m4 = false;
+
+static bool led_connection_state = false;
+static bool led_entr_q_state = false;
+static bool led_entr_f_state = false;
+static bool led_mass_q_state = false;
+static bool led_mass_f_state = false;
 
 static i2c_dev_t rtc_dev;
 
@@ -620,7 +632,58 @@ void storage_set_connection(int sensor_id, bool new_value) {
     }
 }
 
-void storage_get_all_lotes() {
+bool storage_get_led_connection_state() {
+    return led_connection_state;
+}
+void storage_set_led_connection_state(bool new_value) {
+    if (led_connection_state != new_value) {
+        set_bool(LED_CONNECTION_KEY, new_value);
+        led_connection_state = new_value;
+    }
+}
+
+bool storage_get_led_entr_q_state() {
+    return led_entr_q_state;
+}
+
+void storage_set_led_entr_q_state(bool new_value) {
+    if (led_entr_q_state != new_value) {
+        set_bool(LED_ENTR_Q_KEY, new_value);
+        led_entr_q_state = new_value;
+    }
+}
+
+bool storage_get_led_entr_f_state() {
+    return led_entr_f_state;
+}
+
+void storage_set_led_entr_f_state(bool new_value) {
+    if (led_entr_f_state != new_value) {
+        set_bool(LED_ENTR_F_KEY, new_value);
+        led_entr_f_state = new_value;
+    }
+}
+
+bool storage_get_led_mass_q_state() {
+    return led_mass_q_state;
+}
+
+void storage_set_led_mass_q_state(bool new_value) {
+    if (led_mass_q_state != new_value) {
+        set_bool(LED_MASS_Q_KEY, new_value);
+        led_mass_q_state = new_value;
+    }
+}
+
+bool storage_get_led_mass_f_state() {
+    return led_mass_f_state;
+}
+
+void storage_set_led_mass_f_state(bool new_value) {
+    if (led_mass_f_state != new_value) {
+        set_bool(LED_MASS_F_KEY, new_value);
+        led_mass_f_state = new_value;
+    }
 }
 
 static void initialize_cache() {
@@ -670,6 +733,13 @@ static void initialize_cache() {
     conexao_m2 = get_bool(CONEXAO_M2_KEY, false);
     conexao_m3 = get_bool(CONEXAO_M3_KEY, false);
     conexao_m4 = get_bool(CONEXAO_M4_KEY, false);
+
+    led_connection_state = get_bool(LED_CONNECTION_KEY, false);
+    led_entr_q_state = get_bool(LED_CONNECTION_KEY, false);
+    led_entr_f_state = get_bool(LED_CONNECTION_KEY, false);
+    led_mass_q_state = get_bool(LED_CONNECTION_KEY, false);
+    led_mass_f_state = get_bool(LED_CONNECTION_KEY, false);
+
 }
 
 static void initialize_fs() {

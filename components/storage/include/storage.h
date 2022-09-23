@@ -149,7 +149,37 @@ void storage_set_should_connected_m4(bool new_value);
 bool storage_get_alarme_state();
 void storage_set_alarme_state(bool new_value);
 
+bool storage_get_led_connection_state();
+void storage_set_led_connection_state(bool new_value);
+
+bool storage_get_led_entr_q_state();
+void storage_set_led_entr_q_state(bool new_value);
+
+bool storage_get_led_entr_f_state();
+void storage_set_led_entr_f_state(bool new_value);
+
+bool storage_get_led_mass_q_state();
+void storage_set_led_mass_q_state(bool new_value);
+
+bool storage_get_led_mass_f_state();
+void storage_set_led_mass_f_state(bool new_value);
+
 void storage_set_connection(int sensor_id, bool new_value);
+
+bool storage_get_led_connection_state();
+void storage_set_led_connection_state(bool new_value);
+
+bool storage_get_led_entr_q_state();
+void storage_set_led_entr_q_state(bool new_value);
+
+bool storage_get_led_entr_f_state();
+void storage_set_led_entr_f_state(bool new_value);
+
+bool storage_get_led_mass_q_state();
+void storage_set_led_mass_q_state(bool new_value);
+
+bool storage_get_led_mass_f_state();
+void storage_set_led_mass_f_state(bool new_value);
 
 typedef enum {
     EVENT_SENSOR_ENTR,

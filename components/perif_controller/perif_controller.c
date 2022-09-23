@@ -55,106 +55,33 @@ static void set_led_conexao(bool on);
 static void handle_starting(PerifMessage_t *perif_msg) {
     if (perif_msg->type == PERIF_MSG_RUN) {
         curr_state = RUNNING;
-    } else if (perif_msg->type == PERIF_MSG_FINISH) {
-        curr_state = STARTING;
     }
-}
-
-static bool should_other_alarm_run(int sensor_id) { //0 = entrada, 1 = m1...
-    bool alarme_entr = storage_get_should_alarme_entr();
-    bool alarme_m1 = storage_get_should_alarme_m1();
-    bool alarme_m2 = storage_get_should_alarme_m2();
-    bool alarme_m3 = storage_get_should_alarme_m3();
-    bool alarme_m4 = storage_get_should_alarme_m4();
-
-    if(sensor_id == 0) {
-        return (alarme_m1 || alarme_m2 || alarme_m3 || alarme_m4);
-    } else if(sensor_id == 1) {
-        return (alarme_entr || alarme_m2 || alarme_m3 || alarme_m4);
-    } else if(sensor_id == 2) {
-        return (alarme_entr || alarme_m1 || alarme_m3 || alarme_m4);
-    } else if(sensor_id == 3) {
-        return (alarme_entr || alarme_m1 || alarme_m2 || alarme_m4);
-    } else if(sensor_id == 4) {
-        return (alarme_entr || alarme_m1 || alarme_m2 || alarme_m3);
-    }
-
-    return false;
-}
-
-static bool should_other_queimador_stop(int sensor_id) { //0 = entrada, 1 = m1...
-    bool queimador_entr = storage_get_should_queimador_entr();
-    bool queimador_m1 = storage_get_should_queimador_m1();
-    bool queimador_m2 = storage_get_should_queimador_m2();
-    bool queimador_m3 = storage_get_should_queimador_m3();
-    bool queimador_m4 = storage_get_should_queimador_m4();
-
-    if(sensor_id == 0) {
-        return (!queimador_m1 || !queimador_m2 || !queimador_m3 || !queimador_m4);
-    } else if(sensor_id == 1) {
-        return (!queimador_entr || !queimador_m2 || !queimador_m3 || !queimador_m4);
-    } else if(sensor_id == 2) {
-        return (!queimador_entr || !queimador_m1 || !queimador_m3 || !queimador_m4);
-    } else if(sensor_id == 3) {
-        return (!queimador_entr || !queimador_m1 || !queimador_m2 || !queimador_m4);
-    } else if(sensor_id == 4) {
-        return (!queimador_entr || !queimador_m1 || !queimador_m2 || !queimador_m3);
-    }
-
-    return false;
 }
 
 static void handle_running(PerifMessage_t *perif_msg) {
-    if (perif_msg->type == PERIF_MSG_NOTIFY_LOW_ENTR) {
-        if(!storage_get_alarme_state()) {
-            set_alarme(true);
-        }
-
-        if(!should_other_queimador_stop(0) && !storage_get_queimador_state()) {
-            set_queimador(true);
-        }
-    } else if (perif_msg->type == PERIF_MSG_NOTIFY_NORMAL_ENTR) {
-        if(!should_other_alarm_run(0) && storage_get_alarme_state()) {
-            set_alarme(false);
-        }
-
-        if(!should_other_queimador_stop(0) && !storage_get_queimador_state()) {
-            set_queimador(true);
-        }
-    } else if (perif_msg->type == PERIF_MSG_NOTIFY_HIGH_ENTR) {
-        if(!storage_get_alarme_state()) {
-            set_alarme(true);
-        }
-
-        if(storage_get_queimador_state()) {
-            set_queimador(false);
-        }
-    } else if (perif_msg->type == PERIF_MSG_NOTIFY_LOW_MASS) {
-        if(!storage_get_alarme_state()) {
-            set_alarme(true);
-        }
-
-        if(!should_other_queimador_stop(perif_msg->payload) && !storage_get_queimador_state()) {
-            set_queimador(true);
-        }
-    } else if (perif_msg->type == PERIF_MSG_NOTIFY_NORMAL_MASS) {
-        if(!should_other_alarm_run(perif_msg->payload) && storage_get_alarme_state()) {
-            set_alarme(false);
-        }
-
-        if(!should_other_queimador_stop(perif_msg->payload) && !storage_get_queimador_state()) {
-            set_queimador(true);
-        }
-    } else if (perif_msg->type == PERIF_MSG_NOTIFY_HIGH_MASS) {
-        if(!storage_get_alarme_state()) {
-            set_alarme(true);
-        }
-
-        if(storage_get_queimador_state()) {
-            set_queimador(false);
-        }
-    } else if (perif_msg->type == PERIF_MSG_NOTIFY_CONNECTED) {
-    } else if (perif_msg->type == PERIF_MSG_NOTIFY_DISCONNECTED) {
+    if (perif_msg->type == PERIF_MSG_NOTIFY_QUEIMADOR_STATE) {
+        set_queimador(perif_msg->payload);
+        common_send_state_msg(STA_MSG_CONFIRM_QUEIMADOR_STATE, perif_msg->payload, portMAX_DELAY);
+    } else if (perif_msg->type == PERIF_MSG_NOTIFY_ALARME_STATE) {
+        set_alarme(perif_msg->payload);
+        common_send_state_msg(STA_MSG_CONFIRM_ALARME_STATE, perif_msg->payload, portMAX_DELAY);
+    } else if (perif_msg->type == PERIF_MSG_NOTIFY_LED_CONNECTION_STATE) {
+        set_led_conexao(perif_msg->payload);
+        common_send_state_msg(STA_MSG_CONFIRM_LED_CONNECTION_STATE, perif_msg->payload, portMAX_DELAY);
+    } else if (perif_msg->type == PERIF_MSG_NOTIFY_LED_ENTR_F_STATE) {
+        set_led_entr_frio(perif_msg->payload);
+        common_send_state_msg(STA_MSG_CONFIRM_LED_ENTR_F_STATE, perif_msg->payload, portMAX_DELAY);
+    } else if (perif_msg->type == PERIF_MSG_NOTIFY_LED_ENTR_Q_STATE) {
+        set_led_entr_quente(perif_msg->payload);
+        common_send_state_msg(STA_MSG_CONFIRM_LED_ENTR_Q_STATE, perif_msg->payload, portMAX_DELAY);
+    } else if (perif_msg->type == PERIF_MSG_NOTIFY_LED_MASS_F_STATE) {
+        set_led_mass_frio(perif_msg->payload);
+        common_send_state_msg(STA_MSG_CONFIRM_LED_MASS_F_STATE, perif_msg->payload, portMAX_DELAY);
+    } else if (perif_msg->type == PERIF_MSG_NOTIFY_LED_MASS_Q_STATE) {
+        set_led_mass_quente(perif_msg->payload);
+        common_send_state_msg(STA_MSG_CONFIRM_LED_MASS_Q_STATE, perif_msg->payload, portMAX_DELAY);
+    } else if (perif_msg->type == PERIF_MSG_FINISH) {
+        curr_state = STARTING;
     }
 }
 

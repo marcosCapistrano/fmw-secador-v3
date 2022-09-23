@@ -192,27 +192,27 @@ static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
             write_to_ihm("get n0.val");
             write_to_ihm("get n1.val");
         }
-    } else if (page_id == 7) {   //Pagina Low Entr 
-        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_ENTR, (void *) NULL, portMAX_DELAY);
-    } else if (page_id == 8) {   //Pagina High Entr 
-        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_ENTR, (void *) NULL, portMAX_DELAY);
-    } else if (page_id == 9) {   //Pagina Low M1 
-        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M1, (void *) NULL, portMAX_DELAY);
-    } else if (page_id == 10) {   //Pagina High M1 
-        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M1, (void *) NULL, portMAX_DELAY);
-    } else if (page_id == 11) {   //Pagina Low M2 
-        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M2, (void *) NULL, portMAX_DELAY);
-    } else if (page_id == 12) {   //Pagina High M2 
-        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M2, (void *) NULL, portMAX_DELAY);
-    } else if (page_id == 13) {   //Pagina Low M3 
-        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M3, (void *) NULL, portMAX_DELAY);
-    } else if (page_id == 14) {   //Pagina High M3 
-        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M3, (void *) NULL, portMAX_DELAY);
-    } else if (page_id == 15) {   //Pagina Low M4 
-        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M4, (void *) NULL, portMAX_DELAY);
-    } else if (page_id == 16) {   //Pagina High M4 
-        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M4, (void *) NULL, portMAX_DELAY);
-    }  else if (page_id == 17) {
+    } else if (page_id == 7) {  // Pagina Low Entr
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_ENTR, (void *)NULL, portMAX_DELAY);
+    } else if (page_id == 8) {  // Pagina High Entr
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_ENTR, (void *)NULL, portMAX_DELAY);
+    } else if (page_id == 9) {  // Pagina Low M1
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M1, (void *)NULL, portMAX_DELAY);
+    } else if (page_id == 10) {  // Pagina High M1
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M1, (void *)NULL, portMAX_DELAY);
+    } else if (page_id == 11) {  // Pagina Low M2
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M2, (void *)NULL, portMAX_DELAY);
+    } else if (page_id == 12) {  // Pagina High M2
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M2, (void *)NULL, portMAX_DELAY);
+    } else if (page_id == 13) {  // Pagina Low M3
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M3, (void *)NULL, portMAX_DELAY);
+    } else if (page_id == 14) {  // Pagina High M3
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M3, (void *)NULL, portMAX_DELAY);
+    } else if (page_id == 15) {  // Pagina Low M4
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M4, (void *)NULL, portMAX_DELAY);
+    } else if (page_id == 16) {  // Pagina High M4
+        common_send_state_msg(STA_MSG_NOTIFY_IS_AWARE_M4, (void *)NULL, portMAX_DELAY);
+    } else if (page_id == 17) {
         common_send_state_msg(STA_MSG_CONFIRM_NEW, (void *)NULL, portMAX_DELAY);
     }
 }
@@ -496,37 +496,51 @@ static void handle_update_running(IHMMessage_t *update_event) {
     } else if (update_event->type == IHM_MSG_CHANGE_QUEIMADOR_MODE) {
         if (ihm_state.curr_page == 1)
             write_queimador_mode(update_event->payload);
-    } else if (update_event->type == IHM_MSG_NOTIFY_LOW_ENTR) {
-        ESP_LOGE(TAG, "INLOW ENTR!!!");
-        if (ihm_state.curr_page != 7)
-            write_change_page(7);
-    } else if (update_event->type == IHM_MSG_NOTIFY_HIGH_ENTR) {
-        if (ihm_state.curr_page != 8)
-            write_change_page(8);
-    } else if (update_event->type == IHM_MSG_NOTIFY_LOW_M1) {
-        if (ihm_state.curr_page != 9)
-            write_change_page(9);
-    } else if (update_event->type == IHM_MSG_NOTIFY_HIGH_M1) {
-        if (ihm_state.curr_page != 10)
-            write_change_page(10);
-    } else if (update_event->type == IHM_MSG_NOTIFY_LOW_M2) {
-        if (ihm_state.curr_page != 11)
-            write_change_page(11);
-    } else if (update_event->type == IHM_MSG_NOTIFY_HIGH_M2) {
-        if (ihm_state.curr_page != 12)
-            write_change_page(12);
-    } else if (update_event->type == IHM_MSG_NOTIFY_LOW_M3) {
-        if (ihm_state.curr_page != 13)
-            write_change_page(13);
-    } else if (update_event->type == IHM_MSG_NOTIFY_HIGH_M3) {
-        if (ihm_state.curr_page != 14)
-            write_change_page(14);
-    } else if (update_event->type == IHM_MSG_NOTIFY_LOW_M4) {
-        if (ihm_state.curr_page != 15)
-            write_change_page(15);
-    } else if (update_event->type == IHM_MSG_NOTIFY_HIGH_M4) {
-        if (ihm_state.curr_page != 16)
-            write_change_page(16);
+    } else if (update_event->type == IHM_MSG_NOTIFY_ENTR_STATE) {
+        int state = update_event->payload;
+        if (state == -1) {
+            if (ihm_state.curr_page != 7)
+                write_change_page(7);
+        } else if (state == 1) {
+            if (ihm_state.curr_page != 8)
+                write_change_page(8);
+        }
+    } else if (update_event->type == IHM_MSG_NOTIFY_M1_STATE) {
+        int state = update_event->payload;
+        if (state == -1) {
+            if (ihm_state.curr_page != 9)
+                write_change_page(9);
+        } else if (state == 1) {
+            if (ihm_state.curr_page != 10)
+                write_change_page(10);
+        }
+    } else if (update_event->type == IHM_MSG_NOTIFY_M2_STATE) {
+        int state = update_event->payload;
+        if (state == -1) {
+            if (ihm_state.curr_page != 11)
+                write_change_page(11);
+        } else if (state == 1) {
+            if (ihm_state.curr_page != 12)
+                write_change_page(12);
+        }
+    } else if (update_event->type == IHM_MSG_NOTIFY_M3_STATE) {
+        int state = update_event->payload;
+        if (state == -1) {
+            if (ihm_state.curr_page != 13)
+                write_change_page(13);
+        } else if (state == 1) {
+            if (ihm_state.curr_page != 14)
+                write_change_page(14);
+        }
+    } else if (update_event->type == IHM_MSG_NOTIFY_M4_STATE) {
+        int state = update_event->payload;
+        if (state == -1) {
+            if (ihm_state.curr_page != 15)
+                write_change_page(15);
+        } else if (state == 1) {
+            if (ihm_state.curr_page != 16)
+                write_change_page(16);
+        }
     }
 }
 
