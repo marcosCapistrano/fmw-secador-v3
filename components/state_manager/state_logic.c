@@ -334,11 +334,11 @@ PerifMessageType_t get_perif_queimador_action(void **payload) {
             /*
                 Se ligado e em modo palha, e algum sensor ultrapassou o limite, desligar
             */
-            if (!is_entr_within_limits() ||
-                !is_m4_within_limits() ||
-                !is_m4_within_limits() ||
-                !is_m4_within_limits() ||
-                !is_m4_within_limits()) {
+            if (is_entr_higher() ||
+                is_m1_higher() ||
+                is_m2_higher() ||
+                is_m3_higher() ||
+                is_m4_higher()) {
                 *payload = (void *)false;
                 return PERIF_MSG_NOTIFY_QUEIMADOR_STATE;
             }
