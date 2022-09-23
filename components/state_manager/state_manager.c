@@ -5,10 +5,10 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
+#include "state_logic.h"
 #include "stdbool.h"
 #include "storage.h"
 
-#define HISTERESE 7
 
 extern QueueHandle_t state_msg_q;
 extern QueueHandle_t ihm_msg_q;
@@ -49,38 +49,26 @@ static void handle_running(StateMessage_t *state_msg) {
 
         curr_state = STARTING;
     } else if (state_msg->type == STA_MSG_CHANGE_SENSOR_ENTR) {
-        int sensor_entr = state_msg->payload;
-        int limit_min = storage_get_min_entr();
-        int limit_max = storage_get_max_entr();
-
         storage_set_sensor_entr(sensor_entr);
         common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_ENTR, sensor_entr, portMAX_DELAY);
 
-        bool is_aware_entr = storage_get_is_aware_entr();
-        int lower_bound = (limit_min - HISTERESE) < 0 ? 0 : (limit_min - HISTERESE);
+        PerifMessage_t alarme_action_msg = get_perif_alarme_action();
+        PerifMessage_t queimador_action_msg = get_perif_queimador_action();
+        PerifMessage_t led_entr_action_msg = get_perif_led_entr_action();
+        IHMMessage_t ihm_action_msg = get_ihm_action();
 
-        ESP_LOGE(TAG, "sensor entr: %d, max+h: %d, isAware: %d", sensor_entr, (limit_max + HISTERESE), is_aware_entr);
-        if (sensor_entr < (limit_min - HISTERESE) && !is_aware_entr) {
-            ESP_LOGE(TAG, "INLOW ENTR!!!");
-            common_send_ihm_msg(IHM_MSG_NOTIFY_LOW_ENTR, (void *)NULL, portMAX_DELAY);
-            common_send_perif_msg(PERIF_MSG_NOTIFY_LOW_ENTR, (void *)NULL, portMAX_DELAY);
+        if (ihm_action_msg)
+            common_send_ihm_msg(ihm_action_msg, (void *)NULL, portMAX_DELAY);
 
-            storage_set_should_alarme_entr(true);
-            storage_set_should_queimador_entr(true);
+        if (alarme_action_msg)
+            common_send_perif_msg(alarme_action_msg, (void *)NULL, portMAX_DELAY);
 
-        } else if (sensor_entr > (limit_max + HISTERESE) && !is_aware_entr) {
-            common_send_ihm_msg(IHM_MSG_NOTIFY_HIGH_ENTR, (void *)NULL, portMAX_DELAY);
-            common_send_perif_msg(PERIF_MSG_NOTIFY_HIGH_ENTR, (void *)NULL, portMAX_DELAY);
+        if(queimador_action_msg)
+            common_send_perif_msg(queimador_action_msg, (void *)NULL, portMAX_DELAY);
 
-            storage_set_should_alarme_entr(true);
-            storage_set_should_queimador_entr(false);
-        } else {
-            storage_set_is_aware_entr(false);
-            common_send_perif_msg(PERIF_MSG_NOTIFY_NORMAL_ENTR, (void *)NULL, portMAX_DELAY);
+        if(led_entr_action_msg)
+            common_send_perif_msg(led_entr_action_msg, (void *)NULL, portMAX_DELAY);
 
-            storage_set_should_alarme_entr(false);
-            storage_set_should_queimador_entr(true);
-        }
     } else if (state_msg->type == STA_MSG_CHANGE_SENSOR_M1) {
         int sensor_m1 = state_msg->payload;
         int limit_min = storage_get_min_m1();
