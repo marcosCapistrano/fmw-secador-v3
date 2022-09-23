@@ -208,8 +208,10 @@ static void handle_running(StateMessage_t *state_msg) {
             common_send_perif_msg(alarme_action_msg, payload, portMAX_DELAY);
 
         PerifMessageType_t queimador_action_msg = get_perif_queimador_action(&payload);
-        if (queimador_action_msg != PERIF_MSG_NONE)
+        if (queimador_action_msg != PERIF_MSG_NONE) {
             common_send_perif_msg(queimador_action_msg, payload, portMAX_DELAY);
+            ESP_LOGE(TAG, "send from here, type: %d, payload: %d", queimador_action_msg, (int)payload);
+        }
 
         PerifMessageType_t led_entr_f_action_msg = get_perif_led_entr_f_action(&payload);
         if (led_entr_f_action_msg != PERIF_MSG_NONE)

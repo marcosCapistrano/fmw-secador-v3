@@ -322,6 +322,7 @@ PerifMessageType_t get_perif_queimador_action(void **payload) {
         - Estiver em queimador_mode true
         - Algum sensor ultrapassar a máxima dele
     */
+   ESP_LOGE("OIEOEIE", "state: %d, mode: %d", queimador_state, queimador_mode);
     if (queimador_state) {
         /*
             Se estiver ligado e em modo lenha, desligar
@@ -333,11 +334,11 @@ PerifMessageType_t get_perif_queimador_action(void **payload) {
             /*
                 Se ligado e em modo palha, e algum sensor ultrapassou o limite, desligar
             */
-            if (is_entr_within_limits_hist() ||
-                is_m4_within_limits_hist() ||
-                is_m4_within_limits_hist() ||
-                is_m4_within_limits_hist() ||
-                is_m4_within_limits_hist()) {
+            if (!is_entr_within_limits() ||
+                !is_m4_within_limits() ||
+                !is_m4_within_limits() ||
+                !is_m4_within_limits() ||
+                !is_m4_within_limits()) {
                 *payload = (void *)false;
                 return PERIF_MSG_NOTIFY_QUEIMADOR_STATE;
             }

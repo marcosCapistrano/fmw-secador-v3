@@ -60,6 +60,7 @@ static void handle_starting(PerifMessage_t *perif_msg) {
 
 static void handle_running(PerifMessage_t *perif_msg) {
     if (perif_msg->type == PERIF_MSG_NOTIFY_QUEIMADOR_STATE) {
+        ESP_LOGE(TAG, "Receibed notify queimador: %d", (int) perif_msg->payload);
         set_queimador(perif_msg->payload);
         common_send_state_msg(STA_MSG_CONFIRM_QUEIMADOR_STATE, perif_msg->payload, portMAX_DELAY);
     } else if (perif_msg->type == PERIF_MSG_NOTIFY_ALARME_STATE) {
