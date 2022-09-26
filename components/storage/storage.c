@@ -735,7 +735,6 @@ static void initialize_cache() {
     led_entr_f_state = get_bool(LED_CONNECTION_KEY, false);
     led_mass_q_state = get_bool(LED_CONNECTION_KEY, false);
     led_mass_f_state = get_bool(LED_CONNECTION_KEY, false);
-
 }
 
 static void initialize_fs() {
@@ -778,13 +777,22 @@ static bool file_exists(const char *path) {
 }
 
 static time_t get_time_epoch() {
-    struct tm rtcinfo;
+    struct tm rtcinfo = {0};
 
     if (ds3231_get_time(&rtc_dev, &rtcinfo) != ESP_OK) {
         ESP_LOGE(TAG, "Could not get time.");
     }
 
-    time_t time = mktime(&rtcinfo);
+    struct tm tm_info = {0};
+    tm_info.tm_year = rtcinfo.tm_year - 1900;
+    tm_info.tm_mon = rtcinfo.tm_mon;
+    tm_info.tm_mday = rtcinfo.tm_mday;
+    tm_info.tm_hour = rtcinfo.tm_hour;
+    tm_info.tm_min = rtcinfo.tm_min;
+    tm_info.tm_sec = rtcinfo.tm_sec;
+
+    time_t time = mktime(&tm_info);
+
     return time;
 }
 
@@ -796,6 +804,7 @@ void storage_add_record_init() {
 
     FILE *f = fopen(path, "w");
     fprintf(f, "%ld,INIT,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n", time_now, queimador_mode, limit_min_entr, limit_max_entr, limit_min_m1, limit_max_m1, limit_min_m2, limit_max_m2, limit_min_m3, limit_max_m3, limit_min_m4, limit_max_m4);
+
 
     fclose(f);
 }

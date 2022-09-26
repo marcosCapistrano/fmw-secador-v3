@@ -30,7 +30,8 @@
         "*.ipp": "c",
         "string": "c",
         "esp_vfs.h": "c",
-        "esp_spiffs.h": "c"
+        "esp_spiffs.h": "c",
+        "time.h": "c"
     },
     "taskExplorer.enableMake": false,
     "search.exclude": {
