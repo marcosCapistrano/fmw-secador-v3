@@ -74,7 +74,6 @@ static void handle_running(StateMessage_t *state_msg) {
 
         IHMMessageType_t ihm_entr_action_msg = get_ihm_entr_action(&payload);
         if (ihm_entr_action_msg != IHM_MSG_NONE) {
-            ESP_LOGE(TAG, "IHMTYPE: %d, payload: %d", ihm_entr_action_msg, (int)payload);
             common_send_ihm_msg(ihm_entr_action_msg, payload, portMAX_DELAY);
         }
     } else if (state_msg->type == STA_MSG_CHANGE_SENSOR_M1) {
@@ -210,7 +209,6 @@ static void handle_running(StateMessage_t *state_msg) {
         PerifMessageType_t queimador_action_msg = get_perif_queimador_action(&payload);
         if (queimador_action_msg != PERIF_MSG_NONE) {
             common_send_perif_msg(queimador_action_msg, payload, portMAX_DELAY);
-            ESP_LOGE(TAG, "send from here, type: %d, payload: %d", queimador_action_msg, (int)payload);
         }
 
         PerifMessageType_t led_entr_f_action_msg = get_perif_led_entr_f_action(&payload);
@@ -223,7 +221,6 @@ static void handle_running(StateMessage_t *state_msg) {
 
         IHMMessageType_t ihm_entr_action_msg = get_ihm_entr_action(&payload);
         if (ihm_entr_action_msg != IHM_MSG_NONE) {
-            ESP_LOGE(TAG, "IHMTYPE: %d, payload: %d", ihm_entr_action_msg, (int)payload);
             common_send_ihm_msg(ihm_entr_action_msg, payload, portMAX_DELAY);
         }
     } else if (state_msg->type == STA_MSG_CHANGE_LIMIT_M1_MIN) {
@@ -363,8 +360,9 @@ static void handle_running(StateMessage_t *state_msg) {
         if (perif_action_msg != PERIF_MSG_NONE)
             common_send_perif_msg(perif_action_msg, payload, portMAX_DELAY);
     } else if (state_msg->type == STA_MSG_CHANGE_DISCONNECT) {
-        storage_set_connection(state_msg->payload, true);
-        common_send_ihm_msg(IHM_MSG_CHANGE_CONNECT, state_msg->payload, portMAX_DELAY);
+        storage_set_connection(state_msg->payload, false);
+
+        common_send_ihm_msg(IHM_MSG_CHANGE_DISCONNECT, state_msg->payload, portMAX_DELAY);
 
         void *payload = NULL;
         PerifMessageType_t perif_action_msg = get_perif_connection_action(&payload);
@@ -393,7 +391,6 @@ static void handle_running(StateMessage_t *state_msg) {
 
         IHMMessageType_t ihm_entr_action_msg = get_ihm_entr_action(&payload);
         if (ihm_entr_action_msg != IHM_MSG_NONE) {
-            ESP_LOGE(TAG, "IHMTYPE: %d, payload: %d", ihm_entr_action_msg, (int)payload);
             common_send_ihm_msg(ihm_entr_action_msg, payload, portMAX_DELAY);
         }
     } else if (state_msg->type == STA_MSG_NOTIFY_IS_AWARE_M1) {
@@ -548,29 +545,6 @@ static void state_manager_task(void *pvParameters) {
         }
     }
 }
-
-// switch (state_msg.type) {
-//     case STA_MSG_CHANGE_QUEIMADOR_MODE:
-//         storage_set_queimador_mode(state_msg.payload);
-//         common_send_ihm_msg(IHM_MSG_CHANGE_QUEIMADOR_MODE, (void *)state_msg.payload, portMAX_DELAY);
-//         break;
-
-//     case FINISHED:
-//         ESP_LOGI(TAG, "Received event on FINISHED");
-//         break;
-
-//     case STA_MSG_CONFIRM_CONTINUE:
-//         ESP_LOGE(TAG, "Received Confirm Continue!");
-//         curr_state = RUNNING;
-//         break;
-
-//     case STA_MSG_CONFIRM_NEW:
-//         break;
-
-//     default:
-//         ESP_LOGE(TAG, "Received Uhnandled Event: %d", state_msg.type);
-//         break;
-// }
 
 void state_manager_init(void) {
     // Checar se estamos em new dry ou continue dry

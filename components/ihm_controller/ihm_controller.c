@@ -240,26 +240,34 @@ static void dispatch_page_loaded(uint8_t page_id) {
             write_text_temperature(0, sensor_entr);
 
             if (m1_connected) {
+                write_pic_id(1, 30);
                 write_text_temperature(1, sensor_m1);
             } else {
+                write_pic_id(1, 29);
                 write_text_temperature(1, -1);
             }
 
-            if (m2_connected)
+            if (m2_connected) {
+                write_pic_id(2, 30);
                 write_text_temperature(2, sensor_m2);
-            else {
+            } else {
+                write_pic_id(2, 29);
                 write_text_temperature(1, -1);
             }
 
-            if (m3_connected)
+            if (m3_connected) {
+                write_pic_id(3, 30);
                 write_text_temperature(3, sensor_m3);
-            else {
+            } else {
+                write_pic_id(3, 29);
                 write_text_temperature(1, -1);
             }
 
-            if (m4_connected)
+            if (m4_connected) {
+                write_pic_id(4, 30);
                 write_text_temperature(4, sensor_m4);
-            else {
+            } else {
+                write_pic_id(4, 29);
                 write_text_temperature(1, -1);
             }
 
@@ -571,7 +579,6 @@ static void ihm_task(void *pvParameters) {
         } else if (queue_handle == ihm_msg_q) {
             xQueueReceive(ihm_msg_q, (void *)&update_event, (TickType_t)0);
             process_update(&update_event);
-            ESP_LOGI(TAG, "Received from update q");
         }
     }
 }

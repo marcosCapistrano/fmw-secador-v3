@@ -262,7 +262,6 @@ PerifMessageType_t get_perif_alarme_action(void **payload) {
 
     */
 
-    ESP_LOGE("STATE_LOGIC", "Entr: %u, M1: %u, M2: %u, M3: %u, M4: %u", storage_get_sensor_entr(), storage_get_sensor_m1(), storage_get_sensor_m2(), storage_get_sensor_m3(), storage_get_sensor_m4());
     if (alarme_state) {
         if (is_entr_within_limits_hist() &&
             is_m1_within_limits_hist() &&
@@ -322,7 +321,6 @@ PerifMessageType_t get_perif_queimador_action(void **payload) {
         - Estiver em queimador_mode true
         - Algum sensor ultrapassar a máxima dele
     */
-   ESP_LOGE("OIEOEIE", "state: %d, mode: %d", queimador_state, queimador_mode);
     if (queimador_state) {
         /*
             Se estiver ligado e em modo lenha, desligar
@@ -513,15 +511,12 @@ IHMMessageType_t get_ihm_entr_action(void **payload) {
 
     if (!is_entr_within_limits_hist()) {
         if (is_entr_lower_hist() && !is_aware_entr) {
-            ESP_LOGE("OIEOIE", "Entrada Lower e não aware!");
             *payload = (void *)-1;
             return IHM_MSG_NOTIFY_ENTR_STATE;
         } else if (is_entr_higher_hist() && !is_aware_entr) {
-            ESP_LOGE("OIEOIE", "Entrada HIGHER e não aware!");
             *payload = (void *)1;
             return IHM_MSG_NOTIFY_ENTR_STATE;
         } else {
-            ESP_LOGE("OIEOIE", "Nenhum dos dois, min%u - %u - %umax = is_aware = %d", storage_get_min_entr(), storage_get_sensor_entr(), storage_get_max_entr(), storage_get_is_aware_entr());
             *payload = (void *)0;
             return IHM_MSG_NOTIFY_ENTR_STATE;
         }

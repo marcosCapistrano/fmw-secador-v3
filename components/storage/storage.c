@@ -618,16 +618,12 @@ void storage_set_conexao_m4(bool new_value) {
 
 void storage_set_connection(int sensor_id, bool new_value) {
     if (sensor_id == 1) {
-        ESP_LOGI(TAG, "Setando conexao m1");
         storage_set_conexao_m1(new_value);
     } else if (sensor_id == 2) {
-        ESP_LOGI(TAG, "Setando conexao m2");
         storage_set_conexao_m2(new_value);
     } else if (sensor_id == 3) {
-        ESP_LOGI(TAG, "Setando conexao m3");
         storage_set_conexao_m3(new_value);
     } else if (sensor_id == 4) {
-        ESP_LOGI(TAG, "Setando conexao m4");
         storage_set_conexao_m4(new_value);
     }
 }

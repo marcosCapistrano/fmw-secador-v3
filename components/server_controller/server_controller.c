@@ -153,7 +153,7 @@ static esp_err_t on_ws_handler(httpd_req_t* req) {
         ESP_LOGE(TAG, "httpd_ws_recv_frame failed to get frame len with %d", ret);
         return ret;
     }
-    ESP_LOGI(TAG, "frame len is %d", ws_pkt.len);
+
     if (ws_pkt.len) {
         /* ws_pkt.len + 1 is for NULL termination as we are expecting a string */
         buf = calloc(1, ws_pkt.len + 1);
@@ -169,8 +169,6 @@ static esp_err_t on_ws_handler(httpd_req_t* req) {
             free(buf);
             return ret;
         }
-
-        ESP_LOGI(TAG, "Got packet with message: %s", buf);
 
         char* temp_buf = NULL;
         temp_buf = calloc(1, ws_pkt.len - 2);
@@ -189,9 +187,7 @@ static esp_err_t on_ws_handler(httpd_req_t* req) {
 
         int sock_fd = httpd_req_to_sockfd(req);
 
-        ESP_LOGI(TAG, "Sensor ID: %d - Temperature: %d", sensor_id, temperature);
         connect_sensor(sensor_id, temperature, sock_fd);
-
         free(temp_buf);
     }
 
@@ -342,7 +338,6 @@ static esp_err_t on_root_handler(httpd_req_t* req) {
             /* Send the buffer contents as HTTP response chunk */
             if (httpd_resp_send_chunk(req, chunk, read_bytes) != ESP_OK) {
                 close(fd);
-                ESP_LOGE(TAG, "File sending failed!");
                 /* Abort sending file */
                 httpd_resp_sendstr_chunk(req, NULL);
                 /* Respond with 500 Internal Server Error */
@@ -383,7 +378,7 @@ static httpd_close_func_t on_close_session(httpd_handle_t* handle, int sock_fd) 
         sensors.m4_sock_fd = -1;
     } else if (sock_fd == sensors.m4_sock_fd) {
         sensor_id = 4;
-        
+
         common_send_state_msg(STA_MSG_CHANGE_DISCONNECT, (void*)sensor_id, portMAX_DELAY);
         sensors.m4_sock_fd = -1;
     }
@@ -400,10 +395,8 @@ static httpd_handle_t start_webserver(void) {
     config.close_fn = on_close_session;
 
     // Start the httpd server
-    ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
     if (httpd_start(&server, &config) == ESP_OK) {
         // Set URI handlers
-        ESP_LOGI(TAG, "Registering URI handlers");
         httpd_register_uri_handler(server, &uri_ws);  // WEBSOCKET dos ESP32
         httpd_register_uri_handler(server, &uri_get_lotes);
         httpd_register_uri_handler(server, &uri_get_lote_id);
