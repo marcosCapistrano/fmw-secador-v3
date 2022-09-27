@@ -11,5 +11,5 @@
 nvs,      data, nvs,           ,  16k,
 phy_init, data, phy,           ,  4k,
 factory,  app,  factory,       ,  1M,
-website, data, spiffs, , 600K,
+website, data, spiffs, , 1M,
 storage, data, spiffs, , 1M,

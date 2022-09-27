@@ -24,7 +24,7 @@ const router = createBrowserRouter([
         element: <AllLotes />
       },
       {
-        path: "lote/*",
+        path: "/historico/lote/*",
         element: <LoteDetails />
       }
     ]
@@ -32,7 +32,7 @@ const router = createBrowserRouter([
 ]);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+  <>
     <RouterProvider router={router} />
-  </React.StrictMode>
+  </>
 )

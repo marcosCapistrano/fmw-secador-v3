@@ -25,8 +25,6 @@ static const char *TAG = "STATE_MANAGER";
 static void handle_starting(StateMessage_t *state_msg) {
     if (state_msg->type == STA_MSG_CONFIRM_NEW) {
         storage_start_new_lote();
-
-        storage_add_record_init();
         storage_add_record_device_on();
 
         common_send_ihm_msg(IHM_MSG_RUN, NULL, portMAX_DELAY);
@@ -44,6 +42,7 @@ static void handle_starting(StateMessage_t *state_msg) {
 static void handle_running(StateMessage_t *state_msg) {
     if (state_msg->type == STA_MSG_FINISH) {
         storage_set_lote_concluded(true);
+        storage_add_record_finish();
         common_send_ihm_msg(IHM_MSG_FINISH, (void *)NULL, portMAX_DELAY);
 
         curr_state = STARTING;
@@ -52,7 +51,7 @@ static void handle_running(StateMessage_t *state_msg) {
         storage_set_sensor_entr(sensor_entr);
         common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_ENTR, sensor_entr, portMAX_DELAY);
 
-        if(is_entr_within_limits())
+        if (is_entr_within_limits())
             storage_set_is_aware_entr(false);
 
         void *payload = NULL;
@@ -81,7 +80,7 @@ static void handle_running(StateMessage_t *state_msg) {
         storage_set_sensor_m1(sensor_m1);
         common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_M1, sensor_m1, portMAX_DELAY);
 
-        if(is_m1_within_limits())
+        if (is_m1_within_limits())
             storage_set_is_aware_m1(false);
 
         void *payload = NULL;
@@ -110,7 +109,7 @@ static void handle_running(StateMessage_t *state_msg) {
         storage_set_sensor_m2(sensor_m2);
         common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_M2, sensor_m2, portMAX_DELAY);
 
-        if(is_m2_within_limits())
+        if (is_m2_within_limits())
             storage_set_is_aware_m2(false);
 
         void *payload = NULL;
@@ -139,7 +138,7 @@ static void handle_running(StateMessage_t *state_msg) {
         storage_set_sensor_m3(sensor_m3);
         common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_M3, sensor_m3, portMAX_DELAY);
 
-        if(is_m3_within_limits())
+        if (is_m3_within_limits())
             storage_set_is_aware_m3(false);
 
         void *payload = NULL;
@@ -168,7 +167,7 @@ static void handle_running(StateMessage_t *state_msg) {
         storage_set_sensor_m4(sensor_m4);
         common_send_ihm_msg(IHM_MSG_CHANGE_SENSOR_M4, sensor_m4, portMAX_DELAY);
 
-        if(is_m4_within_limits())
+        if (is_m4_within_limits())
             storage_set_is_aware_m4(false);
 
         void *payload = NULL;
@@ -198,7 +197,7 @@ static void handle_running(StateMessage_t *state_msg) {
         storage_set_max_entr(state_msg->payload);
         common_send_ihm_msg(IHM_MSG_CONFIRM_LIMIT_ENTR, state_msg->payload, portMAX_DELAY);
 
-        if(is_entr_within_limits())
+        if (is_entr_within_limits())
             storage_set_is_aware_entr(false);
 
         void *payload = NULL;
@@ -229,7 +228,7 @@ static void handle_running(StateMessage_t *state_msg) {
         storage_set_max_m1(state_msg->payload);
         common_send_ihm_msg(IHM_MSG_CONFIRM_LIMIT_M1, state_msg->payload, portMAX_DELAY);
 
-        if(is_m1_within_limits())
+        if (is_m1_within_limits())
             storage_set_is_aware_m1(false);
 
         void *payload = NULL;
@@ -259,7 +258,7 @@ static void handle_running(StateMessage_t *state_msg) {
         storage_set_max_m2(state_msg->payload);
         common_send_ihm_msg(IHM_MSG_CONFIRM_LIMIT_M2, state_msg->payload, portMAX_DELAY);
 
-        if(is_m2_within_limits())
+        if (is_m2_within_limits())
             storage_set_is_aware_m2(false);
 
         void *payload = NULL;
@@ -289,7 +288,7 @@ static void handle_running(StateMessage_t *state_msg) {
         storage_set_max_m3(state_msg->payload);
         common_send_ihm_msg(IHM_MSG_CONFIRM_LIMIT_M3, state_msg->payload, portMAX_DELAY);
 
-        if(is_m3_within_limits())
+        if (is_m3_within_limits())
             storage_set_is_aware_m3(false);
 
         void *payload = NULL;
@@ -319,7 +318,7 @@ static void handle_running(StateMessage_t *state_msg) {
         storage_set_max_m4(state_msg->payload);
         common_send_ihm_msg(IHM_MSG_CONFIRM_LIMIT_M4, state_msg->payload, portMAX_DELAY);
 
-        if(is_m4_within_limits())
+        if (is_m4_within_limits())
             storage_set_is_aware_m4(false);
 
         void *payload = NULL;
@@ -524,6 +523,7 @@ static void state_manager_task(void *pvParameters) {
     StateMessage_t state_msg;
 
     for (;;) {
+        storage_update_last_saved_time();
         if (xQueueReceive(state_msg_q, &state_msg, portMAX_DELAY)) {
             switch (curr_state) {
                 case STARTING:
@@ -554,6 +554,8 @@ void state_manager_init(void) {
     } else {
         common_send_ihm_msg(IHM_MSG_NOTIFY_CONTINUE_DRY, (void *)NULL, portMAX_DELAY);
     }
+
+    storage_add_record_device_state();
 
     xTaskCreate(state_manager_task, "STATE_MANAGER_TASK", 4800, NULL, 5, NULL);
 }

@@ -8,7 +8,7 @@ export default function AllLotes() {
             {
                 lotes.map(lote => (
                     <li>
-                        <Link to={`/lote/${lote}`} >
+                        <Link to={`/historico/lote/${lote}`} >
                             <button className="bg-gray-200 m-2 p-4 w-fit rounded-lg hover:bg-blue-600 hover:text-white">
                                 Lote {lote}
                             </button>

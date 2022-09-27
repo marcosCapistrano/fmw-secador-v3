@@ -181,6 +181,13 @@ void storage_set_led_mass_q_state(bool new_value);
 bool storage_get_led_mass_f_state();
 void storage_set_led_mass_f_state(bool new_value);
 
+int32_t storage_get_last_saved_time();
+void storage_set_last_saved_time(int32_t new_value);
+void storage_update_last_saved_time();
+void storage_add_record_init();
+void storage_add_record_finish();
+void storage_add_record_device_state();
+
 typedef enum {
     EVENT_SENSOR_ENTR,
     EVENT_SENSOR_M1,

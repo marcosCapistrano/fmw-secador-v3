@@ -21,7 +21,7 @@
 #define PIN_CONEXAO 13
 #define PIN_SENSOR 19
 
-#define GPIO_OUTPUT_SEL ((1ULL << PIN_QUEIMADOR) | (1ULL << PIN_ALARME))
+#define GPIO_OUTPUT_SEL ((1ULL << PIN_QUEIMADOR) | (1ULL << PIN_ALARME) | (1ULL << PIN_MASSA_QUENTE) | (1ULL << PIN_MASSA_FRIO) | (1ULL << PIN_ENTRADA_QUENTE) | (1ULL << PIN_ENTRADA_FRIO) | (1ULL << PIN_CONEXAO))
 #define GPIO_INPUT_SEL (1ULL << PIN_SENSOR)
 
 #define GPIO_DS18B20_0 (CONFIG_ONE_WIRE_GPIO)
@@ -192,33 +192,33 @@ static void set_alarme(bool on) {
 
 static void set_led_entr_quente(bool on) {
     if (on) {
-        gpio_set_level(PIN_ENTRADA_QUENTE, 0);
-    } else {
         gpio_set_level(PIN_ENTRADA_QUENTE, 1);
+    } else {
+        gpio_set_level(PIN_ENTRADA_QUENTE, 0);
     }
 }
 
 static void set_led_entr_frio(bool on) {
     if (on) {
-        gpio_set_level(PIN_ENTRADA_FRIO, 0);
-    } else {
         gpio_set_level(PIN_ENTRADA_FRIO, 1);
+    } else {
+        gpio_set_level(PIN_ENTRADA_FRIO, 0);
     }
 }
 
 static void set_led_mass_quente(bool on) {
     if (on) {
-        gpio_set_level(PIN_MASSA_QUENTE, 0);
-    } else {
         gpio_set_level(PIN_MASSA_QUENTE, 1);
+    } else {
+        gpio_set_level(PIN_MASSA_QUENTE, 0);
     }
 }
 
 static void set_led_mass_frio(bool on) {
     if (on) {
-        gpio_set_level(PIN_MASSA_FRIO, 0);
-    } else {
         gpio_set_level(PIN_MASSA_FRIO, 1);
+    } else {
+        gpio_set_level(PIN_MASSA_FRIO, 0);
     }
 }
 

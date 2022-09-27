@@ -1,118 +1,178 @@
-import { useState, useEffect } from "react";
-import { csv, scaleBand, scaleLinear } from "d3";
+import React, { useState } from 'react';
+import csv from 'csvtojson';
+import Axios from "axios";
+import { Line } from 'react-chartjs-2';
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend,
+} from 'chart.js';
+import { useEffect } from 'react';
+import axios from 'axios';
 
-const width = 700;
-const height = 500;
+ChartJS.register(
+    CategoryScale,
+    LinearScale,
+    PointElement,
+    LineElement,
+    Title,
+    Tooltip,
+    Legend
+);
 
-const rawData = [
-    1492389063, "SENSOR_ENTR", 25,
-    1492389531, "SENSOR_ENTR", 24,
-    1492389547, "SENSOR_ENTR", 25,
-    1492389563, "SENSOR_ENTR", 24,
-    1492390842, "SENSOR_ENTR", 25,
-    1492393973, "SENSOR_ENTR", 26,
-    1492393989, "SENSOR_ENTR", 28,
-    1492394005, "SENSOR_ENTR", 29,
-    1492394022, "SENSOR_ENTR", 30,
-    1492394054, "SENSOR_ENTR", 29,
-    1492394132, "SENSOR_ENTR", 28,
-    1492394383, "SENSOR_ENTR", 26,
-    1492394431, "SENSOR_ENTR", 32,
-    1492394447, "SENSOR_ENTR", 33,
-    1492394463, "SENSOR_ENTR", 32,
-    1492394479, "SENSOR_ENTR", 31,
-    1492394511, "SENSOR_ENTR", 30,
-    1492394543, "SENSOR_ENTR", 29,
-    1492394606, "SENSOR_ENTR", 28,
-    1492394670, "SENSOR_ENTR", 27,
-    1492394858, "SENSOR_ENTR", 26,
-    1492394859, "SENSOR_ENTR", 27,
-    1492394875, "SENSOR_ENTR", 26,
-    1492394907, "SENSOR_ENTR", 28,
-    1492394923, "SENSOR_ENTR", 30,
-    1492394955, "SENSOR_ENTR", 29,
-    1492395002, "SENSOR_ENTR", 28,
-    1492395067, "SENSOR_ENTR", 30,
-    1492395067, "SENSOR_ENTR", 31,
-    1492395084, "SENSOR_ENTR", 33,
-    1492395115, "SENSOR_ENTR", 32,
-    1492395132, "SENSOR_ENTR", 31,
-    1492395179, "SENSOR_ENTR", 33,
-    1492395180, "SENSOR_ENTR", 34,
-    1492395196, "SENSOR_ENTR", 35,
-    1492395212, "SENSOR_ENTR", 34,
-    1492395228, "SENSOR_ENTR", 33,
-    1492395260, "SENSOR_ENTR", 32,
-    1492395276, "SENSOR_ENTR", 31,
-    1492395308, "SENSOR_ENTR", 30,
-    775466466, "SENSOR_ENTR", 22,
-    775466913, "SENSOR_ENTR", 25,
-    775466930, "SENSOR_ENTR", 26,
-    775466962, "SENSOR_ENTR", 27,
-    775466995, "SENSOR_ENTR", 26,
-    775467027, "SENSOR_ENTR", 25,
-    775467105, "SENSOR_ENTR", 24,
-    775467233, "SENSOR_ENTR", 23,
-    775467334, "SENSOR_ENTR", 24,
-    775467350, "SENSOR_ENTR", 25,
-    775467366, "SENSOR_ENTR", 26,
-    775467383, "SENSOR_ENTR", 28,
-    775467431, "SENSOR_ENTR", 27,
-    775467462, "SENSOR_ENTR", 26,
-    775467514, "SENSOR_ENTR", 25,
-    775467592, "SENSOR_ENTR", 24,
-    775467776, "SENSOR_ENTR", 26,
-    775467777, "SENSOR_ENTR", 27,
-    775467793, "SENSOR_ENTR", 28,
-    775467839, "SENSOR_ENTR", 27,
-    775467886, "SENSOR_ENTR", 26,
-    775467964, "SENSOR_ENTR", 25,
-    775468068, "SENSOR_ENTR", 24,
-    775468333, "SENSOR_ENTR", 23,
-    775710152, "SENSOR_ENTR", 22,
-    775710568, "SENSOR_ENTR", 21,
-    775710600, "SENSOR_ENTR", 20,
-    775711041, "SENSOR_ENTR", 21,
-]
+export const options = {
+    responsive: true,
+    plugins: {
+        legend: {
+            position: 'top',
+        },
+        title: {
+            display: true,
+            text: 'Chart.js Line Chart',
+        },
+    },
+};
+
+function parseHistorico(json) {
+    let result = {
+        initDate: null,
+        endDate: null,
+
+        sublotes: []
+    }
+
+    let subloteCount = 0;
+    for (let entry of json) {
+        if (entry.sensor === "LOTE") {
+            if (entry.value === "1") {
+                result.initDate = new Date(Number(entry.date) * 1000);
+            } else if (entry.value === "0") {
+                result.endDate = new Date(Number(entry.date) * 1000);
+            }
+        } else if (entry.sensor === "DEVICE_STATE") {
+            if (entry.value === "1") {
+                result.sublotes.push({
+                    initDate: new Date(Number(entry.date) * 1000),
+                    endDate: null,
+
+                    sensor_entr: [],
+                    sensor_m1: [],
+                    sensor_m2: [],
+                    sensor_m3: [],
+                    sensor_m4: [],
+                })
+            } else if (entry.value === "0") {
+                result.sublotes[subloteCount].endDate = new Date(Number(entry.date) * 1000);
+                subloteCount++;
+            }
+        } else if (entry.sensor === "SENSOR_ENTR") {
+            result.sublotes[subloteCount].sensor_entr.push({
+                date: new Date(Number(entry.date) * 1000),
+                value: entry.value
+            })
+        } else if (entry.sensor === "SENSOR_M1") {
+            result.sublotes[subloteCount].sensor_m1.push({
+                date: new Date(Number(entry.date) * 1000),
+                value: entry.value
+            })
+        } else if (entry.sensor === "SENSOR_M2") {
+            result.sublotes[subloteCount].sensor_m2.push({
+                date: new Date(Number(entry.date) * 1000),
+                value: entry.value
+            })
+        } else if (entry.sensor === "SENSOR_M3") {
+            result.sublotes[subloteCount].sensor_m3.push({
+                date: new Date(Number(entry.date) * 1000),
+                value: entry.value
+            })
+        } else if (entry.sensor === "SENSOR_M4") {
+            result.sublotes[subloteCount].sensor_m4.push({
+                date: new Date(Number(entry.date) * 1000),
+                value: entry.value
+            })
+        }
+    }
+
+    return result;
+}
+
+let rawData = `1664313661,LOTE,1
+1664313661,DEVICE_STATE,1
+1664313661,SENSOR_ENTR,0
+1664313661,SENSOR_M1,0
+1664313661,SENSOR_M2,0
+1664313661,SENSOR_M3,0
+1664313661,SENSOR_M4,0
+1664313662,SENSOR_ENTR,22`;
+
+const labels = ['January', 'February', "march"];
 
 export default function LoteDetails() {
+    const [initDate, setInitDate] = useState(null);
+    const [endDate, setEndDate] = useState(null);
     const [data, setData] = useState(null);
 
     useEffect(() => {
-        console.log(new Date(rawData[0]*1000))
-        // csv(dataURL).then(data => {
-        //     console.log("fetching");
-        //     setData(data);
-        //     console.log(data);
-        // });
+        async function fetchData() {
+            // const response = await MyAPI.getData(someId);
+            rawData = "date, sensor, value\n" + rawData;
+            csv().fromString(rawData.toString()).then(json => {
+                let result = parseHistorico(json);
+
+                setInitDate(result.initDate);
+                setEndDate(result.endDate);
+
+                console.log();
+
+                setData({
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Dataset 1',
+                            data: result.sublotes[0].sensor_entr.map(data => Number(data.value)),
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                        },
+                    ],
+                })
+            })
+        }
+        fetchData();
+
+        // try {
+        // const response = await axios.get('/lote/1');
+        // rawData = response.data.replace("\n", ",");
+        // rawData = rawData.replace("\n", ",");
+        // console.log(rawData);
+        // } catch (error) {
+        //     console.error(error);
+        // }
+
+
+
+
+        // }, [someId]); // Or [] if effect doesn't need props or state
     }, []);
 
     if (!data) {
         return <pre>Loading...</pre>
+    } else {
+        console.log(data)
     }
-
-    const yScale = scaleBand()
-        .domain(data.map(d => d.Estado))
-        .range([0, height]);
-
-    const xScale = scaleLinear()
-        .domain([0, 80])
-        .range([0, width]);
 
     return (
         <>
             <h1 className="text-center text-3xl pb-8">Lote 1</h1>
-
-            <svg width={width} height={height}>
-                {data.map((d, i) => <rect x={0} y={yScale(d.Estado)} width={xScale(d['Tx homicidios'])} height={yScale.bandwidth()} />)}
-            </svg>
+            <Line options={options} data={data} />;
+            {/* <Line
+                options={options}
+                data={data}
+            /> */}
         </>
     )
 }
-
-                    // data.map((d, i) => (
-                    //     <path fill={d.hex} d={pieArc({
-                    //         startAngle: i / data.length * 2 * Math.PI,
-                    //         endAngle: (i+1) / data.length * 2 * Math.PI
-                    //     })} />
-                    // ))

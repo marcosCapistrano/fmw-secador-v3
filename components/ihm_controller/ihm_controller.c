@@ -219,7 +219,6 @@ static void dispatch_button_released(uint8_t page_id, uint8_t component_id) {
 
 static void dispatch_page_loaded(uint8_t page_id) {
     ihm_state.curr_page = page_id;
-    ESP_LOGE(TAG, "Page loaded: %d", page_id);
     switch (page_id) {
         case 1: {  // Pagina Sensores
             bool m1_connected = storage_get_conexao_m1();
@@ -382,10 +381,6 @@ static void dispatch_continue_timer_expired() {
 static void process_command(uint8_t *data, int start, int end) {
     size_t length = end - start + 1;
     uint8_t data_head = data[start];
-
-    for (int i = start; i < end; i++) {
-        ESP_LOGE(TAG, "[%d]: %d", i, data[i]);
-    }
 
     if (data_head == 101) {
         uint8_t data_page_id = data[start + 1];
