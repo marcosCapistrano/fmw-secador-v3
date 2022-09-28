@@ -7,6 +7,7 @@
 #include "esp_event.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
+#include "esp_spiffs.h"
 #include "esp_vfs.h"
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
@@ -249,8 +250,6 @@ static esp_err_t on_get_lotes_handler(httpd_req_t* req) {
 
     char response[250] = {0};
 
-    Lote_t* lote_list = NULL;
-
     while ((entry = readdir(dir)) != NULL) {
         char append[257] = {0};
         sprintf(append, "%s,", entry->d_name);
@@ -296,6 +295,55 @@ static httpd_uri_t uri_get_lote_id = {
     .uri = "/lote/*",
     .method = HTTP_GET,
     .handler = on_get_lote_id_handler};
+
+static esp_err_t on_get_space_handler(httpd_req_t* req) {
+    size_t total = 0, used = 0;
+    esp_err_t ret = esp_spiffs_info("storage", &total, &used);
+
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    char response[250] = {0};
+    sprintf(response, "%d,%d", total, used);
+
+    httpd_resp_sendstr(req, response);
+
+    return ESP_OK;
+}
+static httpd_uri_t uri_get_space = {
+    .uri = "/space",
+    .method = HTTP_GET,
+    .handler = on_get_space_handler};
+
+static esp_err_t on_post_delete_file(httpd_req_t* req) {
+    char path[600] = {0};
+
+    const char s[2] = "/";
+    char* token = strtok(req->uri, s);
+    token = strtok(NULL, s);
+
+    sprintf(path, "/storage/%s", token);
+
+    int file_deleted = remove(path);
+    ESP_LOGE(TAG, "FILED DELETED: %d", file_deleted);
+    if (file_deleted == -1) {
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    const char resp[] = "OK";
+    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+
+    return ESP_OK;
+}
+
+static httpd_uri_t uri_post_delete_file = {
+    .uri = "/delete/*",
+    .method = HTTP_POST,
+    .handler = on_post_delete_file};
 
 static esp_err_t on_root_handler(httpd_req_t* req) {
     char filepath[FILE_PATH_MAX];
@@ -388,6 +436,8 @@ static httpd_handle_t start_webserver(void) {
     if (httpd_start(&server, &config) == ESP_OK) {
         // Set URI handlers
         httpd_register_uri_handler(server, &uri_ws);  // WEBSOCKET dos ESP32
+        httpd_register_uri_handler(server, &uri_get_space);
+        httpd_register_uri_handler(server, &uri_post_delete_file);
         httpd_register_uri_handler(server, &uri_get_lotes);
         httpd_register_uri_handler(server, &uri_get_lote_id);
         httpd_register_uri_handler(server, &uri_root);

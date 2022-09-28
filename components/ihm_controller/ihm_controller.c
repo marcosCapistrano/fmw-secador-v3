@@ -64,6 +64,8 @@ static LimitPageDetails_t limit_page_details = {
 static void write_to_ihm(const char *command) {
     size_t length = strlen(command);
 
+    ESP_LOGE(TAG, "Sending command: %s", command);
+
     uart_write_bytes(UART_NUM, "\xFF\xFF\xFF", 3);
     uart_write_bytes(UART_NUM, command, length);
     uart_write_bytes(UART_NUM, "\xFF\xFF\xFF", 3);
