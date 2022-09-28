@@ -799,6 +799,7 @@ void storage_add_record_finish() {
     sprintf(path, "/storage/%d", lote_number);
 
     FILE *f = fopen(path, "a");
+    fprintf(f, "%ld,DEVICE_STATE,%d\n", time_now, false);
     fprintf(f, "%ld,LOTE,%d\n", time_now, false);
     fclose(f);
 }

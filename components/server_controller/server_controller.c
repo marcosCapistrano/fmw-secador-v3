@@ -247,33 +247,23 @@ static esp_err_t on_get_lotes_handler(httpd_req_t* req) {
     struct dirent* entry;
     DIR* dir = opendir("/storage");
 
+    char response[250] = {0};
+
     Lote_t* lote_list = NULL;
 
     while ((entry = readdir(dir)) != NULL) {
+        char append[257] = {0};
+        sprintf(append, "%s,", entry->d_name);
+        strcat(response, append);
     }
 
     closedir(dir);
-
-    char response[250] = {0};
-    Lote_t* curr_lote;
-    for (curr_lote = lote_list; curr_lote != NULL; curr_lote = curr_lote->next) {
-        ESP_LOGE(TAG, "%s", curr_lote->name);
-        char append[25] = {0};
-        if (curr_lote->next != NULL) {
-            sprintf(append, "%s,", curr_lote->name);
-        } else {
-            sprintf(append, "%s", curr_lote->name);
-        }
-
-        strcat(response, append);
-    }
 
     httpd_resp_sendstr(req, response);
 
     return ESP_OK;
 }
 static httpd_uri_t uri_get_lotes = {
-
     .uri = "/lotes",
     .method = HTTP_GET,
     .handler = on_get_lotes_handler};

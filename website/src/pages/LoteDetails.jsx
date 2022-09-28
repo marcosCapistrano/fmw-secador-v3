@@ -4,6 +4,7 @@ import Axios from "axios";
 import { useEffect } from 'react';
 import axios from 'axios';
 import LoteAreaChart from '../components/LoteAreaChart';
+import { useParams } from 'react-router-dom';
 
 
 let rawData = `1664313661,LOTE,1
@@ -58,10 +59,13 @@ export default function LoteDetails() {
     const [initDate, setInitDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
     const [sublotes, setSublotes] = useState([]);
+    const {id} = useParams();
 
     useEffect(() => {
         async function fetchData() {
-            // const response = await MyAPI.getData(someId);
+            const response = await axios.get(`/lote/${id}`);
+            rawData = response.data;
+
             rawData = "date, sensor, value\n" + rawData;
             csv().fromString(rawData.toString()).then(json => {
                 let result = parseHistorico(json);
@@ -82,7 +86,7 @@ export default function LoteDetails() {
 
     return (
         <>
-            <h1 className="text-center text-3xl pb-8">Lote 1</h1>
+            <h1 className="text-center text-3xl pb-8">Lote {id}</h1>
             {sublotes.map(sublote => (
                 <div className='items-center'>
                     <LoteAreaChart sublote={sublote} />

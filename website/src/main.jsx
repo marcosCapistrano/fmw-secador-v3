@@ -24,7 +24,7 @@ const router = createBrowserRouter([
         element: <AllLotes />
       },
       {
-        path: "/historico/lote/*",
+        path: "/historico/lote/:id",
         element: <LoteDetails />
       }
     ]

@@ -95,6 +95,7 @@ export default function LoteAreaChart({ sublote }) {
             },
         },
     });
+
     const chartRef = useRef(null);
 
     useEffect(() => {
